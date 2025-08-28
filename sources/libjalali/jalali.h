@@ -80,6 +80,8 @@ extern void jalali_get_jyear_info(struct jyinfo* jyinfo);
 
 extern void jalali_get_date(int p, struct jtm* jtm);
 
+extern void jalali_get_date_from_days(int days, struct jtm* j);
+
 extern int jalali_get_diff(const struct jtm* jtm);
 
 extern void jalali_update(struct jtm* jtm);

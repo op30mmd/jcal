@@ -58,8 +58,8 @@ class struct_jyinfo(Structure):
                 ('apl', c_int))
 
 
-time_t = c_int
-time_t_p = POINTER(c_int)
+time_t = c_long
+time_t_p = POINTER(c_long)
 
 def jtm_to_struct_time(src_jtm):
     """Make :class:`time.struct_time` from broken-down jalali time
