@@ -154,7 +154,11 @@ jobs:
         run: echo "$HOME/.dotnet/tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Harvest files with heat
-        run: heat dir staging/mingw64 -o files.wxs -cg ProductComponents -dr INSTALLFOLDER
+        run: wix heat dir staging/mingw64 -o files.wxs -cg ProductComponents -dr INSTALLFOLDER
+
+      - name: Fix WiX namespace
+        shell: pwsh
+        run: (Get-Content files.wxs) -replace 'http://schemas.microsoft.com/wix/2006/wi', 'http://wixtoolset.org/schemas/v4/wxs' | Set-Content files.wxs
 
       - name: Build MSI installer
         run: wix build -o jcal-${{ env.VERSION }}.msi main.wxs files.wxs
