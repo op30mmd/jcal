@@ -63,6 +63,8 @@ jobs:
       - name: Install dependencies
         run: |
           brew install automake autoconf libtool
+          python -m pip install --upgrade pip
+          pip install setuptools
 
       - name: Build project
         working-directory: ./sources
@@ -149,6 +151,9 @@ jobs:
             </Package>
           </Wix>
           "@ | Out-File -FilePath "main.wxs" -Encoding "utf8"
+
+      - name: Add .dotnet/tools to path
+        run: echo "$HOME/.dotnet/tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Harvest files with heat
         run: wix heat dir staging/mingw64 -o files.wxs -cg ProductComponents -dr INSTALLFOLDER
