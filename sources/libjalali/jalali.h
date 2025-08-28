@@ -72,13 +72,11 @@ extern void jalali_create_time_from_secs(time_t time, struct ab_jtm* ab_jtm);
 
 extern time_t jalali_create_secs_from_time(const struct ab_jtm* ab_jtm);
 
-extern int jalali_create_date_from_days(struct jtm* j);
-
 extern int jalali_create_days_from_date(struct jtm* j);
 
 extern void jalali_get_jyear_info(struct jyinfo* jyinfo);
 
-extern void jalali_get_date(int p, struct jtm* jtm);
+extern void jalali_from_gregorian(int gy, int gm, int gd, int* jy, int* jm, int* jd);
 
 extern void jalali_get_date_from_days(int days, struct jtm* j);
 
