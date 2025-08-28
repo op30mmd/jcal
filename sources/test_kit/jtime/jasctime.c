@@ -13,7 +13,7 @@ int main() {
     j.tm_sec = a.ab_sec;
     j.tm_min = a.ab_min;
     j.tm_hour = a.ab_hour;
-    jalali_create_date_from_days(&j);
+    jalali_create_days_from_date(&j);
     printf("%s", jasctime(&j));
     return 0;
 }
