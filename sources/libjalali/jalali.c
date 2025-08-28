@@ -81,10 +81,17 @@ void jalali_create_time_from_secs(time_t t, struct ab_jtm* d)
         t %= (time_t) J_DAY_LENGTH_IN_SECONDS;
     }
     else {
+#if defined _WIN32 || defined __CYGWIN__
+        t = (J_DAY_LENGTH_IN_SECONDS -
+             (llabs(t - J_DAY_LENGTH_IN_SECONDS) %
+              J_DAY_LENGTH_IN_SECONDS)) %
+            J_DAY_LENGTH_IN_SECONDS;
+#else
         t = (J_DAY_LENGTH_IN_SECONDS -
              (labs(t - J_DAY_LENGTH_IN_SECONDS) %
               J_DAY_LENGTH_IN_SECONDS)) %
             J_DAY_LENGTH_IN_SECONDS;
+#endif
     }
 
     d->ab_hour = t / J_HOUR_LENGTH_IN_SECONDS;
@@ -229,7 +236,11 @@ void jalali_get_date(int p, struct jtm* jtm)
 {
     time_t t = (time_t) p * (time_t) J_DAY_LENGTH_IN_SECONDS;
     struct tm gtm;
+#ifdef _WIN32
+    gmtime_s(&gtm, &t);
+#else
     gmtime_r(&t, &gtm);
+#endif
     jalali_from_gregorian(gtm.tm_year + 1900, gtm.tm_mon + 1, gtm.tm_mday, &jtm->tm_year, &jtm->tm_mon, &jtm->tm_mday);
 
     /* Adjust weekday. Gregorian Sunday is 0. Jalali Saturday is 0. */

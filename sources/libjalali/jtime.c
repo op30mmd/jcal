@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include "jconfig.h"
+#include "jalali.h"
 #include "jtime.h"
 
 const char* GMT_ZONE = "UTC";
