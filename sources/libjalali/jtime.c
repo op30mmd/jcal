@@ -518,7 +518,7 @@ size_t jstrftime(char* s, size_t max, const char* format, const struct jtm* jtm)
             case 'U':
                 memcpy(&t_j, jtm, sizeof(struct jtm));
                 t_j.tm_yday = 0;
-                jalali_create_date_from_days(&t_j);
+                jalali_create_days_from_date(&t_j);
                 tmp = (jtm->tm_yday + t_j.tm_wday) / 7;
                 snprintf(buf, MAX_BUF_SIZE, "%02d", tmp);
                 break;
