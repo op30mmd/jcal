@@ -23,6 +23,8 @@ __version__ = (0, 5, 0, 2)
 
 if sys.platform.startswith('win'):
     libname = 'libjalali.dll'
+elif sys.platform == 'darwin':
+    libname = 'libjalali.dylib'
 else:
     libname = 'libjalali.so'
 _libj = cdll.LoadLibrary(os.path.join(os.environ.get('LIBJALALI_DIR', ''),
