@@ -137,8 +137,7 @@ jobs:
         shell: pwsh
         run: |
           @"
-          <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
-               xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+          <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
             <Package Name="jcal" Manufacturer="jcal" Version="${{ env.VERSION }}" UpgradeCode="8c1c9b2f-2e3a-4f1a-9e8a-8f0e1d2c2b3f">
               <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
               <Feature Id="Main">
@@ -147,7 +146,6 @@ jobs:
               <StandardDirectory Id="ProgramFiles6432Folder">
                 <Directory Id="INSTALLFOLDER" Name="jcal" />
               </StandardDirectory>
-              <ui:WixUI Id="WixUI_Minimal" />
             </Package>
           </Wix>
           "@ | Out-File -FilePath "main.wxs" -Encoding "utf8"
@@ -159,7 +157,7 @@ jobs:
         run: heat dir staging/mingw64 -o files.wxs -cg ProductComponents -dr INSTALLFOLDER
 
       - name: Build MSI installer
-        run: wix build -o jcal-${{ env.VERSION }}.msi -ext WixToolset.UI.wixext main.wxs files.wxs
+        run: wix build -o jcal-${{ env.VERSION }}.msi main.wxs files.wxs
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
