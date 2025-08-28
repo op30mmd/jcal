@@ -17,7 +17,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential automake autoconf libtool python-dev ruby ruby-dev rubygems
+          sudo apt-get install -y build-essential automake autoconf libtool python-dev-is-python3 ruby ruby-dev rubygems
           sudo gem install fpm
 
       - name: Build project
