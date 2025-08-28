@@ -78,7 +78,7 @@ extern void jalali_get_jyear_info(struct jyinfo* jyinfo);
 
 extern void jalali_from_gregorian(int gy, int gm, int gd, int* jy, int* jm, int* jd);
 
-extern void jalali_get_date_from_days(int days, struct jtm* j);
+extern void jalali_get_date(int p, struct jtm* jtm);
 
 extern int jalali_get_diff(const struct jtm* jtm);
 

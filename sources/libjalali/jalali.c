@@ -82,7 +82,7 @@ void jalali_create_time_from_secs(time_t t, struct ab_jtm* d)
     }
     else {
         t = (J_DAY_LENGTH_IN_SECONDS -
-             (abs(t - J_DAY_LENGTH_IN_SECONDS) %
+             (labs(t - J_DAY_LENGTH_IN_SECONDS) %
               J_DAY_LENGTH_IN_SECONDS)) %
             J_DAY_LENGTH_IN_SECONDS;
     }
@@ -220,6 +220,22 @@ int jalali_year_month_days(int year, int month) {
     if (month == 11 && jalali_is_jleap(year))
         dim += 1;
     return dim;
+}
+
+/*
+ * Calculates the jalali date based on number of days since UTC epoch.
+ */
+void jalali_get_date(int p, struct jtm* jtm)
+{
+    time_t t = (time_t) p * (time_t) J_DAY_LENGTH_IN_SECONDS;
+    struct tm gtm;
+    gmtime_r(&t, &gtm);
+    jalali_from_gregorian(gtm.tm_year + 1900, gtm.tm_mon + 1, gtm.tm_mday, &jtm->tm_year, &jtm->tm_mon, &jtm->tm_mday);
+
+    /* Adjust weekday. Gregorian Sunday is 0. Jalali Saturday is 0. */
+    jtm->tm_wday = (gtm.tm_wday + 1) % 7;
+
+    jalali_create_days_from_date(jtm);
 }
 
 /*
