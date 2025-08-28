@@ -154,7 +154,7 @@ jobs:
         run: wix heat dir staging/mingw64 -o files.wxs -cg ProductComponents -dr INSTALLFOLDER
 
       - name: Build MSI installer
-        run: wix build main.wxs files.wxs -o jcal-${{ env.VERSION }}.msi -ext WixToolset.UI.wixext
+        run: wix build -o jcal-${{ env.VERSION }}.msi -ext WixToolset.UI.wixext main.wxs files.wxs
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

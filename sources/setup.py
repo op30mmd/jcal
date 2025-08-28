@@ -2,7 +2,7 @@
 
 import os
 import sys
-from distutils.core import setup
+from setuptools import setup
 src_p = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, src_p)
 import pyjalali
