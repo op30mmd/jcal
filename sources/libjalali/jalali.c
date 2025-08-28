@@ -63,61 +63,8 @@ extern char* tzname[2];
 
 int jalali_is_jleap(int year)
 {
-    int pr = year;
-
-    /* Shifting ``year'' with 2820 year period epoch. */
-    pr -= JALALI_LEAP_BASE;
-
-    pr %= JALALI_LEAP_PERIOD;
-
-    /*
-     * According to C99 standards, modulo operator's result has the same sign
-     * as dividend. Since what we require to process has to be in range
-     * 0-2819, we have to shift the remainder to be positive if dividend is
-     * negative.
-     */
-    if (pr < 0) {
-        pr += JALALI_LEAP_PERIOD;
-    }
-
-    /*
-     * Every cycle consists of one 29 year period and three identical 33 year
-     * periods forming a 128 years length cycle. An exception applies to the
-     * last cycle being 132 years instead and it's last 33 years long partition
-     * will be extended for an extra 4 years thus becoming 37 years long.
-     * JALALI_LAST_CYCLE_START literally marks the beginning of this last
-     * cycle.
-     */
-
-    pr = (pr > JALALI_LAST_CYCLE_START) ?
-        (pr - JALALI_LAST_CYCLE_START) : pr % JALALI_NORMAL_CYCLE_LENGTH;
-
-    /*
-     * Classifying year in a cycle. Assigning to one of the four partitions.
-     */
-    int i;
-    for (i=0; i<J_LI; i++)
-    {
-        if ((pr >= cycle_patterns[i]) && (pr < cycle_patterns[i+1]))
-        {
-            pr -= cycle_patterns[i];
-            /* Handling year-0 exception */
-            if (!pr) /* pr is zero */
-                return 0;
-            /*
-             * If year is a multiple of four then it's leap,
-             * ordinary otherwise.
-             */
-            else
-                return !(pr % J_LI);
-        }
-    }
-
-    /*
-     * Our code flow better not reach this fail-safe
-     * return statement and I really mean it.
-     */
-    return 0;
+    int r = year % 33;
+    return (r==1 || r==5 || r==9 || r==13 || r==17 || r==22 || r==26 || r==30);
 }
 
 /*
@@ -159,33 +106,6 @@ time_t jalali_create_secs_from_time(const struct ab_jtm* d)
          (time_t) d->ab_sec);
 }
 
-/*
- * Month and day of year calculation for a desired day of year.
- * Alters only tm_mday and tm_mon.
- * Zero on success, -1 on failure.
- */
-int jalali_create_date_from_days(struct jtm* j)
-{
-    int p = j->tm_yday;
-    if (p > 365 || p < 0)
-        return -1;
-
-    p++;
-    int i;
-
-    /* Traversing all twelve months, ranging from 0 to 11 */
-    for (i=0; i<11; i++) {
-        if (p > jalali_month_len[i])
-            p -= jalali_month_len[i];
-        else
-            break;
-    }
-
-    j->tm_mday = p;
-    j->tm_mon = i;
-
-    return 0;
-}
 
 /*
  * Calculate day of year (0-365) based on month and day.
@@ -246,65 +166,6 @@ void jalali_get_jyear_info(struct jyinfo* year)
     return ;
 }
 
-/*
- * Calculates date (Jalali) based on difference factor from UTC Epoch by days.
- * 0 means 1 January 1970 (11 Dey 1348).
- */
-void jalali_get_date(int p, struct jtm* j)
-{
-    int porg = p;
-    time_t t;
-    struct tm lt;
-#if defined _WIN32 || defined __MINGW32__ || defined __CYGWIN__
-    struct timezone tz;
-    struct timeval tv;
-#endif
-
-    int wd = (p + J_UTC_EPOCH_WDAY) % J_WEEK_LENGTH;
-
-    if (wd < 0) {
-        j->tm_wday = wd + J_WEEK_LENGTH;
-    } else {
-        j->tm_wday = wd;
-    }
-
-    int y = J_UTC_EPOCH_YEAR, f=0;
-    p += J_UTC_EPOCH_DIFF;
-    int d;
-
-    while (1) {
-        d = (p >= 0) ? 1 : -1;
-        f = jalali_is_jleap(((d > 0) ? y : y-1)) ?
-            JALALI_LEAP_YEAR_LENGTH_IN_DAYS:
-            JALALI_NORMAL_YEAR_LENGTH_IN_DAYS;
-
-        if ((0 <= p) && (p < f))
-            break;
-
-        p-= (d * f);
-        y+= d;
-    }
-
-    j->tm_year = y;
-    j->tm_yday = p;
-
-    jalali_create_date_from_days(j);
-    tzset();
-    t = porg * J_DAY_LENGTH_IN_SECONDS;
-    localtime_r(&t, &lt);
-
-#if defined _WIN32 || defined __MINGW32__ || defined __CYGWIN__
-    gettimeofday(&tv, &tz);
-    j->tm_gmtoff = (-tz.tz_minuteswest) * J_MINUTE_LENGTH_IN_SECONDS
-        + (tz.tz_dsttime * J_HOUR_LENGTH_IN_SECONDS);
-    j->tm_zone = tzname[lt.tm_isdst];
-#else
-    j->tm_gmtoff = lt.tm_gmtoff;
-    j->tm_zone = lt.tm_zone;
-#endif
-
-    j->tm_isdst = lt.tm_isdst;
-}
 
 /*
  * Calculates UTC epoch difference of a desired date by measure of days.
@@ -401,6 +262,31 @@ void jalali_update(struct jtm* jtm)
     /* date is normalized, compute tm_wday and tm_yday */
     jalali_create_days_from_date(jtm);
     jalali_get_date(jalali_get_diff(jtm), jtm);
+}
+
+void jalali_from_gregorian(int gy, int gm, int gd, int* jy, int* jm, int* jd)
+{
+    long long g_days_in_month[12] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
+    long long gy2 = (gm > 2) ? (gy + 1) : gy;
+    long long days = 355666 + (365 * gy) + (long long)((gy2 + 3) / 4) - (long long)((gy2 + 99) / 100) + (long long)((gy2 + 399) / 400) + gd + g_days_in_month[gm - 1];
+
+    *jy = -1595 + (33 * (long long)(days / 12053));
+    days %= 12053;
+    *jy += 4 * (long long)(days / 1461);
+    days %= 1461;
+
+    if (days > 365) {
+        *jy += (long long)((days - 1) / 365);
+        days = (days - 1) % 365;
+    }
+
+    if (days < 186) {
+        *jm = 1 + (long long)(days / 31);
+        *jd = 1 + (days % 31);
+    } else {
+        *jm = 7 + (long long)((days - 186) / 30);
+        *jd = 1 + ((days - 186) % 30);
+    }
 }
 
 /*

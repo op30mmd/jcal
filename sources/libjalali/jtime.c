@@ -24,7 +24,6 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include "jconfig.h"
-#include "jalali.h"
 #include "jtime.h"
 
 const char* GMT_ZONE = "UTC";
@@ -124,14 +123,10 @@ void in_jlocaltime(const time_t* timep, struct jtm* result)
     c_jtm.tm_zone = t.tm_zone;
 #endif
 
-    c = (*timep) + (time_t) gmtoff;
-
-    jalali_create_time_from_secs(c, &ab);
-    jalali_get_date(ab.ab_days, &c_jtm);
-    jalali_create_date_from_days(&c_jtm);
-    c_jtm.tm_sec = ab.ab_sec;
-    c_jtm.tm_min = ab.ab_min;
-    c_jtm.tm_hour = ab.ab_hour;
+    jalali_from_gregorian(t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, &c_jtm.tm_year, &c_jtm.tm_mon, &c_jtm.tm_mday);
+    c_jtm.tm_sec = t.tm_sec;
+    c_jtm.tm_min = t.tm_min;
+    c_jtm.tm_hour = t.tm_hour;
     c_jtm.tm_isdst = t.tm_isdst;
 
     c_jtm.tm_gmtoff = gmtoff;
@@ -161,14 +156,10 @@ void in_jgmtime(const time_t* timep, struct jtm* result)
     tzset();
 
     gmtime_r(timep, &t);
-    c = *timep;
-
-    jalali_create_time_from_secs(c, &ab);
-    jalali_get_date(ab.ab_days, &c_jtm);
-    jalali_create_date_from_days(&c_jtm);
-    c_jtm.tm_sec = ab.ab_sec;
-    c_jtm.tm_min = ab.ab_min;
-    c_jtm.tm_hour = ab.ab_hour;
+    jalali_from_gregorian(t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, &c_jtm.tm_year, &c_jtm.tm_mon, &c_jtm.tm_mday);
+    c_jtm.tm_sec = t.tm_sec;
+    c_jtm.tm_min = t.tm_min;
+    c_jtm.tm_hour = t.tm_hour;
     c_jtm.tm_isdst = 0;
 
     c_jtm.tm_zone = GMT_ZONE;
