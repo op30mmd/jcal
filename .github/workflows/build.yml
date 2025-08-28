@@ -68,7 +68,7 @@ jobs:
         working-directory: ./sources
         run: |
           ./autogen.sh
-          ./configure
+          ./configure --enable-pyjalali
           make
 
       - name: Create staging directory
