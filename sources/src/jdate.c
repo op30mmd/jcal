@@ -34,6 +34,18 @@
 #include "../libjalali/jtime.h"
 #include "jdate.h"
 
+#if defined _WIN32 || defined __CYGWIN__
+char* strptime(const char* s, const char* f, struct tm* tm) {
+    if (strcmp(f, "%Y/%m/%d") == 0) {
+        sscanf(s, "%d/%d/%d", &tm->tm_year, &tm->tm_mon, &tm->tm_mday);
+        tm->tm_year -= 1900;
+        tm->tm_mon -= 1;
+        return (char*)(s + strlen(s));
+    }
+    return NULL;
+}
+#endif
+
 extern char* optarg;
 
 /*
@@ -253,7 +265,11 @@ int main(int argc, char** argv)
             action.utc ? jgmtime_r(&t, &j) : jlocaltime_r(&t, &j);
             jstrftime(buf, MAX_BUF_SIZE, "%h, %d %b %Y %H:%M:%S %z", &j);
         } else {
+#if defined _WIN32 || defined __CYGWIN__
+            action.utc ? gmtime_s(&g, &t) : localtime_s(&g, &t);
+#else
             action.utc ? gmtime_r(&t, &g) : localtime_r(&t, &g);
+#endif
             strftime(buf, MAX_BUF_SIZE, "%a, %d %b %Y %H:%M:%S %z", &g);
         }
 
@@ -266,7 +282,11 @@ int main(int argc, char** argv)
             action.utc ? jgmtime_r(&t, &j) : jlocaltime_r(&t, &j);
             jstrftime(buf, MAX_BUF_SIZE, action.format_ptr, &j);
         } else {
+#if defined _WIN32 || defined __CYGWIN__
+            action.utc ? gmtime_s(&g, &t) : localtime_s(&g, &t);
+#else
             action.utc ? gmtime_r(&t, &g) : localtime_r(&t, &g);
+#endif
             strftime(buf, MAX_BUF_SIZE, action.format_ptr, &g);
         }
 
@@ -279,7 +299,11 @@ int main(int argc, char** argv)
             action.utc ? jgmtime_r(&t, &j) : jlocaltime_r(&t, &j);
             jstrftime(buf, MAX_BUF_SIZE, "%h %b %d %H:%M:%S %Z %Y", &j);
         } else {
+#if defined _WIN32 || defined __CYGWIN__
+            action.utc ? gmtime_s(&g, &t) : localtime_s(&g, &t);
+#else
             action.utc ? gmtime_r(&t, &g) : localtime_r(&t, &g);
+#endif
             strftime(buf, MAX_BUF_SIZE, "%a %b %d %H:%M:%S %Z %Y", &g);
         }
 
