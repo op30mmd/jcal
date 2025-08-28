@@ -109,7 +109,11 @@ void in_jlocaltime(const time_t* timep, struct jtm* result)
 
     tzset();
 
+#if defined _WIN32 || defined __CYGWIN__
+    localtime_s(&t, timep);
+#else
     localtime_r(timep, &t);
+#endif
 
 #if defined _WIN32 || defined __MINGW32__ || defined __CYGWIN__
     struct timeval tv;
@@ -156,7 +160,11 @@ void in_jgmtime(const time_t* timep, struct jtm* result)
     time_t c;
     tzset();
 
+#if defined _WIN32 || defined __CYGWIN__
+    gmtime_s(&t, timep);
+#else
     gmtime_r(timep, &t);
+#endif
     jalali_from_gregorian(t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, &c_jtm.tm_year, &c_jtm.tm_mon, &c_jtm.tm_mday);
     c_jtm.tm_sec = t.tm_sec;
     c_jtm.tm_min = t.tm_min;
