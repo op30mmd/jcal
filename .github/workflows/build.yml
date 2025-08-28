@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
@@ -47,7 +47,7 @@ jobs:
           fpm -s dir -t rpm -n jcal -v ${{ env.VERSION }} --prefix /usr/local -C staging .
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: linux-packages
           path: |
@@ -58,7 +58,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
@@ -86,7 +86,7 @@ jobs:
           tar -czvf jcal-${{ env.VERSION }}-macos.tar.gz -C staging .
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: macos-package
           path: jcal-${{ env.VERSION }}-macos.tar.gz
@@ -95,7 +95,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up MSYS2
         uses: msys2/setup-msys2@v2
@@ -157,7 +157,7 @@ jobs:
         run: wix build main.wxs files.wxs -o jcal-${{ env.VERSION }}.msi -ext WixToolset.UI.wixext
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-package
           path: jcal-${{ env.VERSION }}.msi
@@ -168,7 +168,7 @@ jobs:
     needs: [build-linux, build-macos, build-windows]
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: artifacts
 
