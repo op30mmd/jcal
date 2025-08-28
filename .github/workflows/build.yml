@@ -1,0 +1,184 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - master
+  release:
+    types: [published]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential automake autoconf libtool python-dev ruby ruby-dev rubygems
+          sudo gem install fpm
+
+      - name: Build project
+        working-directory: ./sources
+        run: |
+          ./autogen.sh
+          ./configure --enable-pyjalali
+          make
+
+      - name: Create staging directory
+        run: mkdir -p staging
+
+      - name: Install to staging directory
+        working-directory: ./sources
+        run: make install DESTDIR=$(pwd)/../staging
+
+      - name: Get project version
+        id: get_version
+        run: echo "VERSION=$(grep AC_INIT sources/configure.ac | cut -d '[' -f 3 | cut -d ']' -f 1)" >> $GITHUB_ENV
+
+      - name: Package with FPM (.deb)
+        run: |
+          fpm -s dir -t deb -n jcal -v ${{ env.VERSION }} --prefix /usr/local -C staging .
+
+      - name: Package with FPM (.rpm)
+        run: |
+          fpm -s dir -t rpm -n jcal -v ${{ env.VERSION }} --prefix /usr/local -C staging .
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-packages
+          path: |
+            *.deb
+            *.rpm
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          brew install automake autoconf libtool
+
+      - name: Build project
+        working-directory: ./sources
+        run: |
+          ./autogen.sh
+          ./configure --enable-pyjalali
+          make
+
+      - name: Create staging directory
+        run: mkdir -p staging
+
+      - name: Install to staging directory
+        working-directory: ./sources
+        run: make install DESTDIR=$(pwd)/../staging
+
+      - name: Get project version
+        run: echo "VERSION=$(grep AC_INIT sources/configure.ac | cut -d '[' -f 3 | cut -d ']' -f 1)" >> $GITHUB_ENV
+
+      - name: Create tarball
+        run: |
+          tar -czvf jcal-${{ env.VERSION }}-macos.tar.gz -C staging .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: macos-package
+          path: jcal-${{ env.VERSION }}-macos.tar.gz
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            make
+            mingw-w64-x86_64-toolchain
+            autotools
+
+      - name: Build project
+        shell: msys2 {0}
+        working-directory: ./sources
+        run: |
+          ./autogen.sh
+          ./configure --prefix=/mingw64
+          make
+
+      - name: Create staging directory
+        shell: msys2 {0}
+        run: mkdir -p staging
+
+      - name: Install to staging directory
+        shell: msys2 {0}
+        working-directory: ./sources
+        run: make install DESTDIR=$(pwd)/../staging
+
+      - name: Get project version
+        shell: bash
+        run: echo "VERSION=$(grep AC_INIT sources/configure.ac | cut -d '[' -f 3 | cut -d ']' -f 1)" >> $GITHUB_ENV
+
+      - name: Install WiX Toolset
+        run: dotnet tool install --global wix
+
+      - name: Create main WiX source file
+        shell: pwsh
+        run: |
+          @"
+          <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+               xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+            <Package Name="jcal" Manufacturer="jcal" Version="${{ env.VERSION }}" UpgradeCode="8c1c9b2f-2e3a-4f1a-9e8a-8f0e1d2c2b3f">
+              <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+              <Feature Id="Main">
+                <ComponentGroupRef Id="ProductComponents" />
+              </Feature>
+              <StandardDirectory Id="ProgramFiles6432Folder">
+                <Directory Id="INSTALLFOLDER" Name="jcal" />
+              </StandardDirectory>
+              <ui:WixUI Id="WixUI_Minimal" />
+            </Package>
+          </Wix>
+          "@ | Out-File -FilePath "main.wxs" -Encoding "utf8"
+
+      - name: Harvest files with heat
+        run: wix heat dir staging/mingw64 -o files.wxs -cg ProductComponents -dr INSTALLFOLDER
+
+      - name: Build MSI installer
+        run: wix build main.wxs files.wxs -o jcal-${{ env.VERSION }}.msi -ext WixToolset.UI.wixext
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-package
+          path: jcal-${{ env.VERSION }}.msi
+
+  release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.action == 'published'
+    needs: [build-linux, build-macos, build-windows]
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: List downloaded files
+        run: ls -R artifacts
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/linux-packages/*
+            artifacts/macos-package/*
+            artifacts/windows-package/*
