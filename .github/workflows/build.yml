@@ -27,7 +27,7 @@ jobs:
 
       - name: Debug jdate with GDB
         working-directory: ./sources
-        run: gdb -batch -ex 'run' -ex 'bt' --args ./src/jdate
+        run: gdb -batch -ex 'run' -ex 'bt' --args src/jdate
 
       - name: Create staging directory
         run: mkdir -p staging
@@ -77,7 +77,7 @@ jobs:
 
       - name: Debug jdate with GDB
         working-directory: ./sources
-        run: gdb -batch -ex 'run' -ex 'bt' --args ./src/jdate
+        run: gdb -batch -ex 'run' -ex 'bt' --args src/jdate
 
       - name: Create staging directory
         run: mkdir -p staging
@@ -127,7 +127,7 @@ jobs:
       - name: Debug jdate with GDB
         shell: msys2 {0}
         working-directory: ./sources
-        run: gdb -batch -ex 'run' -ex 'bt' --args ./src/jdate.exe
+        run: gdb -batch -ex 'run' -ex 'bt' --args src/jdate.exe
 
       - name: Create staging directory
         shell: msys2 {0}
