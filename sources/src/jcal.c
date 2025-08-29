@@ -27,18 +27,6 @@
 #include "../libjalali/jalali.h"
 #include "../libjalali/jtime.h"
 
-extern const char* jalali_months[];
-extern const char* jalali_days[];
-extern const char* jalali_days_fa[];
-extern const char* jalali_days_3[];
-extern const char* jalali_days_3_fa[];
-extern const char* jalali_days_2[];
-extern const char* jalali_days_2_fa[];
-extern const char* fa_jalali_months[];
-extern const char* fa_jalali_days_3[];
-extern const char* fa_jalali_days_2[];
-
-extern const int jalali_month_len[];
 
 extern char* optarg;
 
