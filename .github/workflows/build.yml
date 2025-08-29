@@ -25,6 +25,10 @@ jobs:
           ./configure --enable-pyjalali
           make
 
+      - name: Test jdate binary
+        working-directory: ./sources/src
+        run: ./jdate
+
       - name: Create staging directory
         run: mkdir -p staging
 
@@ -71,6 +75,10 @@ jobs:
           ./configure --enable-pyjalali
           make
 
+      - name: Test jdate binary
+        working-directory: ./sources/src
+        run: ./jdate
+
       - name: Create staging directory
         run: mkdir -p staging
 
@@ -114,6 +122,11 @@ jobs:
           ./autogen.sh
           ./configure --prefix=/mingw64
           make
+
+      - name: Test jdate binary
+        shell: msys2 {0}
+        working-directory: ./sources/src
+        run: ./jdate.exe
 
       - name: Create staging directory
         shell: msys2 {0}
