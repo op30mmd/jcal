@@ -34,6 +34,20 @@ extern "C" {
 
 #define MAX_BUF_SIZE 2048
 
+JALALI_API extern const char* jalali_months[];
+JALALI_API extern const char* fa_jalali_months[];
+JALALI_API extern const char* jalali_months_3[];
+JALALI_API extern const char* fa_jalali_months_3[];
+JALALI_API extern const char* jalali_days_fa[];
+JALALI_API extern const char* fa_jalali_days[];
+JALALI_API extern const char* jalali_days_3_fa[];
+JALALI_API extern const char* fa_jalali_days_3[];
+JALALI_API extern const char* jalali_days_2_fa[];
+JALALI_API extern const char* fa_jalali_days_2[];
+JALALI_API extern const char* jalali_days[];
+JALALI_API extern const char* jalali_days_3[];
+JALALI_API extern const char* jalali_days_2[];
+
 JALALI_API extern char* jasctime(const struct jtm* jtm);
 
 JALALI_API extern char* jctime(const time_t* timep);

@@ -78,6 +78,7 @@ struct jyinfo {
 
 
 /* Jalali leap year indication function. */
+JALALI_API extern const int jalali_month_len[];
 JALALI_API extern int jalali_is_jleap(int year);
 
 JALALI_API extern void jalali_create_time_from_secs(time_t time, struct ab_jtm* ab_jtm);
