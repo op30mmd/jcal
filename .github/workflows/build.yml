@@ -103,6 +103,14 @@ jobs:
       - name: Get project version
         id: get_version
         run: echo "VERSION=$(grep AC_INIT sources/configure.ac | cut -d '[' -f 3 | cut -d ']' -f 1)" >> $GITHUB_ENV
+      - name: Create post-install script
+        run: |
+          cat > post-install.sh << 'EOF'
+          #!/bin/bash
+          # Update library cache after installation
+          ldconfig
+          EOF
+          chmod +x post-install.sh
       - name: Package with FPM (.deb)
         run: |
           fpm -s dir -t deb -n jcal -v ${{ env.VERSION }} \
@@ -113,14 +121,6 @@ jobs:
               --license "GPL" \
               --after-install post-install.sh \
               -C staging .
-      - name: Create post-install script
-        run: |
-          cat > post-install.sh << 'EOF'
-          #!/bin/bash
-          # Update library cache after installation
-          ldconfig
-          EOF
-          chmod +x post-install.sh
       - name: Package with FPM (.rpm)
         run: |
           fpm -s dir -t rpm -n jcal -v ${{ env.VERSION }} \
@@ -297,15 +297,15 @@ jobs:
           
           # Look for the shared library
           echo "=== Looking for shared library ==="
-          if [ -f "src/.libs/libjalali-0.dll" ]; then
-            echo "Found libjalali-0.dll in src/.libs/"
-            ls -la src/.libs/libjalali*.dll
+          if [ -f "libjalali/.libs/libjalali-0.dll" ]; then
+            echo "Found libjalali-0.dll in libjalali/.libs/"
+            ls -la libjalali/.libs/libjalali*.dll
             
             # Add library path to PATH for execution
-            export PATH="src/.libs:$PATH"
-            echo "Added src/.libs to PATH"
+            export PATH="libjalali/.libs:$PATH"
+            echo "Added libjalali/.libs to PATH"
           else
-            echo "Warning: libjalali-0.dll not found in src/.libs/"
+            echo "Warning: libjalali-0.dll not found in libjalali/.libs/"
             find . -name "libjalali*.dll" -type f
           fi
           
