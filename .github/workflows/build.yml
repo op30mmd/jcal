@@ -136,7 +136,7 @@ jobs:
         run: |
           @"
           <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-            <Package Name="jcal" Manufacturer="jcal" Version="${{ env.VERSION }}" UpgradeCode="8c1c9b2f-2e3a-4f1a-9e8a-8f0e1d2c2b3f">
+            <Package Name="jcal" Manufacturer="jcal" Version="${{ env.VERSION }}" UpgradeCode="8c1c9b2f-2e3a-4f1a-9e8a-8f0e1d2c2b3f" EmbedCab="yes">
               <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
               <Feature Id="Main">
                 <ComponentGroupRef Id="ProductComponents" />
