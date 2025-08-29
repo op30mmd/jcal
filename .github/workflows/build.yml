@@ -28,31 +28,48 @@ jobs:
       - name: Verify build and debug if needed
         working-directory: ./sources
         run: |
-          echo "Checking if jdate binary exists and is executable..."
+          echo "Checking build outputs..."
+          echo "=== Contents of src directory ==="
+          ls -la src/
+          
+          echo "=== Checking for compiled binaries ==="
+          find src/ -type f -executable -exec file {} \; | grep -E "(ELF|executable)"
+          
           if [ -f "src/jdate" ]; then
-            echo "jdate binary found"
+            echo "jdate found - checking file type:"
             file src/jdate
             ls -la src/jdate
-            echo "Testing jdate execution..."
-            # Always run GDB to catch segfaults and other runtime issues
-            echo "Running GDB diagnostics..."
-            gdb -batch -ex 'set confirm off' -ex 'run' -ex 'bt full' -ex 'info registers' -ex 'quit' --args src/jdate 2>&1 | tee gdb_output.log
             
-            # Also test basic execution
-            if timeout 10s ./src/jdate --version 2>/dev/null || timeout 10s ./src/jdate --help 2>/dev/null; then
-              echo "jdate basic execution successful"
+            # If it's a shell script, just test execution
+            if file src/jdate | grep -q "shell script"; then
+              echo "jdate is a shell script wrapper - testing execution..."
+              if timeout 10s ./src/jdate --version; then
+                echo "jdate script execution successful"
+              else
+                echo "jdate script execution failed"
+              fi
             else
-              echo "jdate execution failed or timed out"
-              echo "=== GDB Output ==="
-              cat gdb_output.log
-              echo "=== Library Dependencies ==="
-              ldd src/jdate || echo "ldd failed"
+              echo "jdate appears to be a binary - running GDB diagnostics..."
+              gdb -batch -ex 'set confirm off' -ex 'run' -ex 'bt full' -ex 'info registers' -ex 'quit' --args src/jdate 2>&1 | tee gdb_output.log
+            fi
+            
+            # Look for the actual compiled binary that the script might be wrapping
+            echo "=== Looking for actual compiled binaries ==="
+            find . -name "*.o" -o -name "jdate.bin" -o -name ".libs" -type d | head -10
+            if [ -d ".libs" ]; then
+              echo "Found .libs directory:"
+              ls -la .libs/
+              if [ -f ".libs/jdate" ]; then
+                echo "Found actual binary in .libs/jdate"
+                file .libs/jdate
+                echo "Running GDB on actual binary..."
+                gdb -batch -ex 'set confirm off' -ex 'run' -ex 'bt full' -ex 'info registers' -ex 'quit' --args .libs/jdate 2>&1
+              fi
             fi
           else
-            echo "ERROR: jdate binary not found!"
+            echo "ERROR: jdate not found!"
             echo "Build may have failed. Listing contents of src directory:"
             ls -la src/
-            echo "Checking make output and build logs..."
             exit 1
           fi
 
@@ -201,31 +218,48 @@ jobs:
         shell: msys2 {0}
         working-directory: ./sources
         run: |
-          echo "Checking if jdate binary exists and is executable..."
+          echo "Checking build outputs..."
+          echo "=== Contents of src directory ==="
+          ls -la src/
+          
+          echo "=== Checking for compiled binaries ==="
+          find src/ -type f -executable -exec file {} \; | grep -E "(PE32|executable)"
+          
           if [ -f "src/jdate.exe" ]; then
-            echo "jdate.exe binary found"
+            echo "jdate.exe found - checking file type:"
             file src/jdate.exe
             ls -la src/jdate.exe
-            echo "Testing jdate execution..."
-            # Always run GDB to catch segfaults and other runtime issues
-            echo "Running GDB diagnostics..."
-            gdb -batch -ex 'set confirm off' -ex 'run' -ex 'bt full' -ex 'info registers' -ex 'quit' --args src/jdate.exe 2>&1 | tee gdb_output.log
             
-            # Also test basic execution
-            if timeout 10s ./src/jdate.exe --version 2>/dev/null || timeout 10s ./src/jdate.exe --help 2>/dev/null; then
-              echo "jdate basic execution successful"
+            # If it's a shell script, just test execution
+            if file src/jdate.exe | grep -q "shell script"; then
+              echo "jdate.exe is a shell script wrapper - testing execution..."
+              if timeout 10s ./src/jdate.exe --version; then
+                echo "jdate script execution successful"
+              else
+                echo "jdate script execution failed"
+              fi
             else
-              echo "jdate execution failed or timed out"
-              echo "=== GDB Output ==="
-              cat gdb_output.log
-              echo "=== Library Dependencies ==="
-              ldd src/jdate.exe || echo "ldd failed"
+              echo "jdate.exe appears to be a binary - running GDB diagnostics..."
+              gdb -batch -ex 'set confirm off' -ex 'run' -ex 'bt full' -ex 'info registers' -ex 'quit' --args src/jdate.exe 2>&1 | tee gdb_output.log
+            fi
+            
+            # Look for the actual compiled binary
+            echo "=== Looking for actual compiled binaries ==="
+            find . -name "*.o" -o -name "jdate.bin" -o -name ".libs" -type d | head -10
+            if [ -d ".libs" ]; then
+              echo "Found .libs directory:"
+              ls -la .libs/
+              if [ -f ".libs/jdate.exe" ]; then
+                echo "Found actual binary in .libs/jdate.exe"
+                file .libs/jdate.exe
+                echo "Running GDB on actual binary..."
+                gdb -batch -ex 'set confirm off' -ex 'run' -ex 'bt full' -ex 'info registers' -ex 'quit' --args .libs/jdate.exe 2>&1
+              fi
             fi
           else
-            echo "ERROR: jdate.exe binary not found!"
+            echo "ERROR: jdate.exe not found!"
             echo "Build may have failed. Listing contents of src directory:"
             ls -la src/
-            echo "Checking make output and build logs..."
             exit 1
           fi
 
