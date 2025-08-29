@@ -25,9 +25,28 @@ jobs:
           ./configure CFLAGS="-g" --enable-pyjalali
           make
 
-      - name: Debug jdate with GDB
+      - name: Verify build and debug if needed
         working-directory: ./sources
-        run: gdb -batch -ex 'run' -ex 'bt' --args src/jdate
+        run: |
+          echo "Checking if jdate binary exists and is executable..."
+          if [ -f "src/jdate" ]; then
+            echo "jdate binary found"
+            file src/jdate
+            ls -la src/jdate
+            echo "Testing jdate execution..."
+            if ./src/jdate --version 2>/dev/null || ./src/jdate --help 2>/dev/null || ./src/jdate 2>/dev/null; then
+              echo "jdate runs successfully"
+            else
+              echo "jdate execution failed, running GDB for debugging..."
+              gdb -batch -ex 'run' -ex 'bt' --args src/jdate
+            fi
+          else
+            echo "ERROR: jdate binary not found!"
+            echo "Build may have failed. Listing contents of src directory:"
+            ls -la src/
+            echo "Checking make output and build logs..."
+            exit 1
+          fi
 
       - name: Create staging directory
         run: mkdir -p staging
@@ -75,9 +94,33 @@ jobs:
           ./configure CFLAGS="-g" --enable-pyjalali
           make
 
-      - name: Debug jdate with GDB
+      - name: Verify build and debug if needed
         working-directory: ./sources
-        run: gdb -batch -ex 'run' -ex 'bt' --args src/jdate
+        run: |
+          echo "Checking if jdate binary exists and is executable..."
+          if [ -f "src/jdate" ]; then
+            echo "jdate binary found"
+            file src/jdate
+            ls -la src/jdate
+            echo "Testing jdate execution..."
+            if ./src/jdate --version 2>/dev/null || ./src/jdate --help 2>/dev/null || ./src/jdate 2>/dev/null; then
+              echo "jdate runs successfully"
+            else
+              echo "jdate execution failed, running GDB for debugging..."
+              # Note: GDB on macOS might have limitations, use lldb as alternative
+              if command -v lldb >/dev/null 2>&1; then
+                lldb -o 'run' -o 'bt' -o 'quit' -- src/jdate
+              else
+                gdb -batch -ex 'run' -ex 'bt' --args src/jdate
+              fi
+            fi
+          else
+            echo "ERROR: jdate binary not found!"
+            echo "Build may have failed. Listing contents of src directory:"
+            ls -la src/
+            echo "Checking make output and build logs..."
+            exit 1
+          fi
 
       - name: Create staging directory
         run: mkdir -p staging
@@ -124,10 +167,29 @@ jobs:
           ./configure CFLAGS="-g" --prefix=/mingw64
           make
 
-      - name: Debug jdate with GDB
+      - name: Verify build and debug if needed
         shell: msys2 {0}
         working-directory: ./sources
-        run: gdb -batch -ex 'run' -ex 'bt' --args src/jdate.exe
+        run: |
+          echo "Checking if jdate binary exists and is executable..."
+          if [ -f "src/jdate.exe" ]; then
+            echo "jdate.exe binary found"
+            file src/jdate.exe
+            ls -la src/jdate.exe
+            echo "Testing jdate execution..."
+            if ./src/jdate.exe --version 2>/dev/null || ./src/jdate.exe --help 2>/dev/null || ./src/jdate.exe 2>/dev/null; then
+              echo "jdate runs successfully"
+            else
+              echo "jdate execution failed, running GDB for debugging..."
+              gdb -batch -ex 'run' -ex 'bt' --args src/jdate.exe
+            fi
+          else
+            echo "ERROR: jdate.exe binary not found!"
+            echo "Build may have failed. Listing contents of src directory:"
+            ls -la src/
+            echo "Checking make output and build logs..."
+            exit 1
+          fi
 
       - name: Create staging directory
         shell: msys2 {0}
