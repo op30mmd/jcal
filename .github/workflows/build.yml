@@ -341,7 +341,6 @@ jobs:
               -ex "thread apply all bt full" \
               -ex "quit" \
               --args "$ACTUAL_JDATE" 2>&1 | tee gdb_output.log
-
           echo "GDB output saved to gdb_output.log"
 
           # Check if GDB caught a segfault
