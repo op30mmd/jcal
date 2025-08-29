@@ -15,19 +15,19 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential automake autoconf libtool python-dev-is-python3 ruby ruby-dev rubygems libreadline-dev
+          sudo apt-get install -y build-essential automake autoconf libtool python-dev-is-python3 ruby ruby-dev rubygems libreadline-dev gdb
           sudo gem install fpm
 
       - name: Build project
         working-directory: ./sources
         run: |
           ./autogen.sh
-          ./configure --enable-pyjalali
+          ./configure CFLAGS="-g" --enable-pyjalali
           make
 
-      - name: Test jdate binary
-        working-directory: ./sources/src
-        run: ./jdate
+      - name: Debug jdate with GDB
+        working-directory: ./sources
+        run: gdb -batch -ex 'run' -ex 'bt' --args ./src/jdate
 
       - name: Create staging directory
         run: mkdir -p staging
@@ -64,7 +64,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install automake autoconf libtool
+          brew install automake autoconf libtool gdb
           python -m pip install --upgrade pip
           pip install setuptools
 
@@ -72,12 +72,12 @@ jobs:
         working-directory: ./sources
         run: |
           ./autogen.sh
-          ./configure --enable-pyjalali
+          ./configure CFLAGS="-g" --enable-pyjalali
           make
 
-      - name: Test jdate binary
-        working-directory: ./sources/src
-        run: ./jdate
+      - name: Debug jdate with GDB
+        working-directory: ./sources
+        run: gdb -batch -ex 'run' -ex 'bt' --args ./src/jdate
 
       - name: Create staging directory
         run: mkdir -p staging
@@ -114,19 +114,20 @@ jobs:
             make
             mingw-w64-x86_64-toolchain
             autotools
+            mingw-w64-x86_64-gdb
 
       - name: Build project
         shell: msys2 {0}
         working-directory: ./sources
         run: |
           ./autogen.sh
-          ./configure --prefix=/mingw64
+          ./configure CFLAGS="-g" --prefix=/mingw64
           make
 
-      - name: Test jdate binary
+      - name: Debug jdate with GDB
         shell: msys2 {0}
-        working-directory: ./sources/src
-        run: ./jdate.exe
+        working-directory: ./sources
+        run: gdb -batch -ex 'run' -ex 'bt' --args ./src/jdate.exe
 
       - name: Create staging directory
         shell: msys2 {0}
