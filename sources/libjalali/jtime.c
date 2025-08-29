@@ -23,9 +23,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/time.h>
-#if defined _WIN32 || defined __CYGWIN__
-#include <windows.h>
-#endif
 #include "jconfig.h"
 #include "jalali.h"
 #include "jtime.h"
@@ -119,18 +116,12 @@ void in_jlocaltime(const time_t* timep, struct jtm* result)
 #endif
 
 #if defined _WIN32 || defined __MINGW32__ || defined __CYGWIN__
-    TIME_ZONE_INFORMATION tzInfo;
-    DWORD dwRet;
+    struct timeval tv;
+    struct timezone tz;
 
-    dwRet = GetTimeZoneInformation(&tzInfo);
-
-    if (dwRet == TIME_ZONE_ID_STANDARD || dwRet == TIME_ZONE_ID_UNKNOWN)
-        gmtoff = -(tzInfo.Bias + tzInfo.StandardBias) * 60;
-    else if (dwRet == TIME_ZONE_ID_DAYLIGHT)
-        gmtoff = -(tzInfo.Bias + tzInfo.DaylightBias) * 60;
-    else
-        gmtoff = 0;
-
+    gettimeofday(&tv, &tz);
+    gmtoff = (-tz.tz_minuteswest) * J_MINUTE_LENGTH_IN_SECONDS +
+        (tz.tz_dsttime * J_HOUR_LENGTH_IN_SECONDS);
     c_jtm.tm_zone = tzname[t.tm_isdst];
 #else
     gmtoff = t.tm_gmtoff;
