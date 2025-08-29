@@ -162,7 +162,8 @@ jobs:
         run: (Get-Content files.wxs) -replace 'http://schemas.microsoft.com/wix/2006/wi', 'http://wixtoolset.org/schemas/v4/wxs' | Set-Content files.wxs
 
       - name: Build MSI installer
-        run: wix build -o jcal-${{ env.VERSION }}.msi main.wxs files.wxs
+        working-directory: staging/mingw64
+        run: wix build -o ../../jcal-${{ env.VERSION }}.msi -b . ../../main.wxs ../../files.wxs
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
