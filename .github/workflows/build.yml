@@ -48,6 +48,24 @@ jobs:
           file "$ACTUAL_JDATE"
           ls -la "$ACTUAL_JDATE"
           
+          # Check library dependencies
+          echo "=== Library dependencies ==="
+          ldd "$ACTUAL_JDATE"
+          
+          # Look for the shared library
+          echo "=== Looking for shared library ==="
+          if [ -f "src/.libs/libjalali.so.0" ]; then
+            echo "Found libjalali.so.0 in src/.libs/"
+            ls -la src/.libs/libjalali.so*
+            
+            # Set library path for execution
+            export LD_LIBRARY_PATH="src/.libs:$LD_LIBRARY_PATH"
+            echo "Set LD_LIBRARY_PATH to: $LD_LIBRARY_PATH"
+          else
+            echo "Warning: libjalali.so.0 not found in src/.libs/"
+            find . -name "libjalali.so*" -type f
+          fi
+          
           # Test execution first
           echo "=== Testing execution ==="
           if timeout 10s "$ACTUAL_JDATE" --version >/dev/null 2>&1; then
@@ -55,10 +73,11 @@ jobs:
           else
             echo "jdate execution failed or crashed, running GDB for debugging..."
             
-            # Run GDB with proper SIGSEGV handling
+            # Run GDB with proper SIGSEGV handling and library path
             echo "=== GDB Debug Session ==="
             gdb -batch \
                 -ex "set confirm off" \
+                -ex "set environment LD_LIBRARY_PATH=src/.libs:$LD_LIBRARY_PATH" \
                 -ex "handle SIGSEGV stop print" \
                 -ex "run" \
                 -ex "bt full" \
@@ -161,6 +180,24 @@ jobs:
           file "$ACTUAL_JDATE"
           ls -la "$ACTUAL_JDATE"
           
+          # Check library dependencies
+          echo "=== Library dependencies ==="
+          otool -L "$ACTUAL_JDATE"
+          
+          # Look for the shared library
+          echo "=== Looking for shared library ==="
+          if [ -f "src/.libs/libjalali.0.dylib" ]; then
+            echo "Found libjalali.0.dylib in src/.libs/"
+            ls -la src/.libs/libjalali*.dylib
+            
+            # Set library path for execution
+            export DYLD_LIBRARY_PATH="src/.libs:$DYLD_LIBRARY_PATH"
+            echo "Set DYLD_LIBRARY_PATH to: $DYLD_LIBRARY_PATH"
+          else
+            echo "Warning: libjalali.0.dylib not found in src/.libs/"
+            find . -name "libjalali*.dylib" -type f
+          fi
+          
           # Test execution first
           echo "=== Testing execution ==="
           if timeout 10s "$ACTUAL_JDATE" --version >/dev/null 2>&1; then
@@ -168,9 +205,10 @@ jobs:
           else
             echo "jdate execution failed or crashed, running LLDB for debugging..."
             
-            # Run LLDB with proper crash handling
+            # Run LLDB with proper crash handling and library path
             echo "=== LLDB Debug Session ==="
-            lldb -o "process handle -s false SIGSEGV" \
+            lldb -o "settings set target.env-vars DYLD_LIBRARY_PATH=src/.libs:$DYLD_LIBRARY_PATH" \
+                 -o "process handle -s false SIGSEGV" \
                  -o "run" \
                  -o "bt all" \
                  -o "register read" \
@@ -253,6 +291,24 @@ jobs:
           file "$ACTUAL_JDATE"
           ls -la "$ACTUAL_JDATE"
           
+          # Check library dependencies
+          echo "=== Library dependencies ==="
+          ldd "$ACTUAL_JDATE" || objdump -p "$ACTUAL_JDATE" | grep "DLL Name"
+          
+          # Look for the shared library
+          echo "=== Looking for shared library ==="
+          if [ -f "src/.libs/libjalali-0.dll" ]; then
+            echo "Found libjalali-0.dll in src/.libs/"
+            ls -la src/.libs/libjalali*.dll
+            
+            # Add library path to PATH for execution
+            export PATH="src/.libs:$PATH"
+            echo "Added src/.libs to PATH"
+          else
+            echo "Warning: libjalali-0.dll not found in src/.libs/"
+            find . -name "libjalali*.dll" -type f
+          fi
+          
           # Test execution first
           echo "=== Testing execution ==="
           if timeout 10s "$ACTUAL_JDATE" --version >/dev/null 2>&1; then
@@ -260,10 +316,11 @@ jobs:
           else
             echo "jdate execution failed or crashed, running GDB for debugging..."
             
-            # Run GDB with proper SIGSEGV handling
+            # Run GDB with proper SIGSEGV handling and library path
             echo "=== GDB Debug Session ==="
             gdb -batch \
                 -ex "set confirm off" \
+                -ex "set environment PATH=src/.libs:$PATH" \
                 -ex "handle SIGSEGV stop print" \
                 -ex "run" \
                 -ex "bt full" \
