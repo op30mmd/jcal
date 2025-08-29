@@ -86,6 +86,7 @@ jobs:
           
           # Test execution first
           echo "=== Testing execution ==="
+          export PATH="$LIBJALALI_PATH:$PATH"
           if timeout 10s "$ACTUAL_JDATE" --version >/dev/null 2>&1; then
             echo "jdate execution successful"
           else
@@ -123,6 +124,14 @@ jobs:
       - name: Get project version
         id: get_version
         run: echo "VERSION=$(grep AC_INIT sources/configure.ac | cut -d '[' -f 3 | cut -d ']' -f 1)" >> $GITHUB_ENV
+      - name: Create post-install script
+        run: |
+          cat > post-install.sh << 'EOF'
+          #!/bin/bash
+          # Update library cache after installation
+          ldconfig
+          EOF
+          chmod +x post-install.sh
       - name: Package with FPM (.deb)
         run: |
           fpm -s dir -t deb -n jcal -v ${{ env.VERSION }} \
@@ -133,14 +142,6 @@ jobs:
               --license "GPL" \
               --after-install post-install.sh \
               -C staging .
-      - name: Create post-install script
-        run: |
-          cat > post-install.sh << 'EOF'
-          #!/bin/bash
-          # Update library cache after installation
-          ldconfig
-          EOF
-          chmod +x post-install.sh
       - name: Package with FPM (.rpm)
         run: |
           fpm -s dir -t rpm -n jcal -v ${{ env.VERSION }} \
@@ -158,7 +159,6 @@ jobs:
             *.deb
             *.rpm
             gdb_output.log
-
   build-macos:
     runs-on: macos-latest
     steps:
@@ -282,7 +282,6 @@ jobs:
           path: |
             jcal-${{ env.VERSION }}-macos.tar.gz
             lldb_output.log
-
   build-windows:
     runs-on: windows-latest
     steps:
@@ -374,7 +373,7 @@ jobs:
           else
             echo "jdate execution failed or crashed"
           fi
-          
+
           # Always run GDB for debugging (even if execution was successful)
           echo "=== Running GDB for debugging ==="
           gdb -batch \
@@ -387,7 +386,7 @@ jobs:
               -ex "thread apply all bt full" \
               -ex "quit" \
               --args "$ACTUAL_JDATE" 2>&1 | tee gdb_output.log
-          
+              
           echo "GDB output saved to gdb_output.log"
           
           # Check if GDB caught a segfault
@@ -453,7 +452,6 @@ jobs:
           path: |
             jcal-${{ env.VERSION }}.msi
             gdb_output.log
-
   release:
     runs-on: ubuntu-latest
     needs: [build-linux, build-macos, build-windows]
