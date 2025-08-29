@@ -291,29 +291,57 @@ void jalali_update(struct jtm* jtm)
     jalali_get_date(jalali_get_diff(jtm), jtm);
 }
 
-void jalali_from_gregorian(int gy, int gm, int gd, int* jy, int* jm, int* jd)
+static int gregorian_to_jdn(int Year, int Month, int Day)
 {
-    long long g_days_in_month[12] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
-    long long gy2 = (gm > 2) ? (gy + 1) : gy;
-    long long days = 355666 + (365 * gy) + (long long)((gy2 + 3) / 4) - (long long)((gy2 + 99) / 100) + (long long)((gy2 + 399) / 400) + gd + g_days_in_month[gm - 1];
+  static const int GregorianDaysInMonth[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+  int MonthDay = 0;
+  int i;
+  for (i = 1; i < Month; i++)
+      MonthDay += GregorianDaysInMonth[i - 1];
+  int DayOfYear = MonthDay + Day + ((Month > 2 && (Year % 4 == 0 && (Year % 100 != 0 || Year % 400 == 0))) ? 1 : 0);
+  return (Year - 1) * 365 + (Year - 1) / 4 - (Year - 1) / 100 + (Year - 1) / 400 + DayOfYear;
+}
 
-    *jy = -1595 + (33 * (long long)(days / 12053));
-    days %= 12053;
-    *jy += 4 * (long long)(days / 1461);
-    days %= 1461;
+#define JALALI_EPOCH 1948321
 
-    if (days > 365) {
-        *jy += (long long)((days - 1) / 365);
-        days = (days - 1) % 365;
-    }
+static int jalali_to_jdn(int Year, int Month, int Day)
+{
+  int epbase = Year - ((Year >= 0) ? 474 : 473);
+  int epyear = 474 + (epbase % 2820);
+  int mday;
+  if (Month <= 7)
+     mday = (Month - 1) * 31;
+  else
+     mday = (Month - 1) * 30 + 6;
+  return Day + mday + (epyear * 682 - 110) / 2816 + (epyear - 1) * 365 + epbase / 2820 * 1029983 + JALALI_EPOCH - 1;
+}
 
-    if (days < 186) {
-        *jm = 1 + (long long)(days / 31);
-        *jd = 1 + (days % 31);
-    } else {
-        *jm = 7 + (long long)((days - 186) / 30);
-        *jd = 1 + ((days - 186) % 30);
-    }
+static void jdn_to_jalali(int jdn, int *Year, int *Month, int *Day)
+{
+  int depoch = jdn - jalali_to_jdn(475, 1, 1);
+  int cycle = depoch / 1029983;
+  int cyear = depoch % 1029983;
+  int ycycle;
+  if (cyear == 1029982)
+     ycycle = 2820;
+  else
+     ycycle = (cyear * 2816 + 1031337) / 1029983;
+  *Year = ycycle + cycle * 2820 + 474;
+  int yday = jdn - jalali_to_jdn(*Year, 1, 1) + 1;
+  if (yday <= 186) {
+     *Month = (yday - 1) / 31 + 1;
+     *Day = (yday - 1) % 31 + 1;
+     }
+  else {
+     *Month = (yday - 187) / 30 + 7;
+     *Day = (yday - 187) / 30 + 1;
+     }
+}
+
+void jalali_from_gregorian(int g_y, int g_m, int g_d, int* j_y, int* j_m, int* j_d)
+{
+    int jdn = gregorian_to_jdn(g_y, g_m, g_d);
+    jdn_to_jalali(jdn, j_y, j_m, j_d);
 }
 
 /*
