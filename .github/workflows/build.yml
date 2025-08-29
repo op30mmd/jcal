@@ -68,6 +68,7 @@ jobs:
           
           # Test execution first
           echo "=== Testing execution ==="
+          export PATH="$LIBJALALI_PATH:$PATH"
           if timeout 10s "$ACTUAL_JDATE" --version >/dev/null 2>&1; then
             echo "jdate execution successful"
           else
@@ -297,15 +298,28 @@ jobs:
           
           # Look for the shared library
           echo "=== Looking for shared library ==="
-          if [ -f "libjalali/.libs/libjalali-0.dll" ]; then
+          LIBJALALI_PATH=""
+          if [ -f "src/.libs/libjalali-0.dll" ]; then
+            echo "Found libjalali-0.dll in src/.libs/"
+            ls -la src/.libs/libjalali*.dll
+            LIBJALALI_PATH="src/.libs"
+          elif [ -f "libjalali/.libs/libjalali-0.dll" ]; then
             echo "Found libjalali-0.dll in libjalali/.libs/"
             ls -la libjalali/.libs/libjalali*.dll
-            
-            # Add library path to PATH for execution
-            export PATH="libjalali/.libs:$PATH"
-            echo "Added libjalali/.libs to PATH"
+            LIBJALALI_PATH="libjalali/.libs"
+          elif [ -f "libjalali/.libs/libjalali-0-5.dll" ]; then
+            echo "Found libjalali-0-5.dll in libjalali/.libs/"
+            ls -la libjalali/.libs/libjalali*.dll
+            # Create a symlink if needed
+            cd libjalali/.libs
+            if [ ! -f "libjalali-0.dll" ] && [ -f "libjalali-0-5.dll" ]; then
+              echo "Creating symlink libjalali-0.dll -> libjalali-0-5.dll"
+              ln -sf libjalali-0-5.dll libjalali-0.dll
+            fi
+            cd ../../
+            LIBJALALI_PATH="libjalali/.libs"
           else
-            echo "Warning: libjalali-0.dll not found in libjalali/.libs/"
+            echo "ERROR: libjalali-0.dll not found!"
             find . -name "libjalali*.dll" -type f
           fi
           
@@ -320,7 +334,7 @@ jobs:
             echo "=== GDB Debug Session ==="
             gdb -batch \
                 -ex "set confirm off" \
-                -ex "set environment PATH=src/.libs:$PATH" \
+                -ex "set environment PATH=$LIBJALALI_PATH:$PATH" \
                 -ex "handle SIGSEGV stop print" \
                 -ex "run" \
                 -ex "bt full" \
