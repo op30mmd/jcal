@@ -89,29 +89,31 @@ jobs:
           if timeout 10s "$ACTUAL_JDATE" --version >/dev/null 2>&1; then
             echo "jdate execution successful"
           else
-            echo "jdate execution failed or crashed, running GDB for debugging..."
-            
-            # Run GDB with proper SIGSEGV handling and library path
-            echo "=== GDB Debug Session ==="
-            gdb -batch \
-                -ex "set confirm off" \
-                -ex "set environment LD_LIBRARY_PATH=$LIBJALALI_PATH:$LD_LIBRARY_PATH" \
-                -ex "handle SIGSEGV stop print" \
-                -ex "run" \
-                -ex "bt full" \
-                -ex "info registers" \
-                -ex "thread apply all bt full" \
-                -ex "quit" \
-                --args "$ACTUAL_JDATE" 2>&1 | tee gdb_output.log
-            
-            echo "GDB output saved to gdb_output.log"
-            
-            # Check if GDB caught a segfault
-            if grep -q "SIGSEGV\|Segmentation fault" gdb_output.log; then
-              echo "SEGFAULT DETECTED - Check gdb_output.log for details"
-              # Exit with error to indicate segfault occurred
-              exit 1
-            fi
+            echo "jdate execution failed or crashed"
+          fi
+          
+          # Always run GDB for debugging (even if execution was successful)
+          echo "=== Running GDB for debugging ==="
+          gdb -batch \
+              -ex "set confirm off" \
+              -ex "set environment LD_LIBRARY_PATH=$LIBJALALI_PATH:$LD_LIBRARY_PATH" \
+              -ex "handle SIGSEGV stop print" \
+              -ex "run" \
+              -ex "bt full" \
+              -ex "info registers" \
+              -ex "thread apply all bt full" \
+              -ex "quit" \
+              --args "$ACTUAL_JDATE" 2>&1 | tee gdb_output.log
+          
+          echo "GDB output saved to gdb_output.log"
+          
+          # Check if GDB caught a segfault
+          if grep -q "SIGSEGV\|Segmentation fault" gdb_output.log; then
+            echo "SEGFAULT DETECTED - Check gdb_output.log for details"
+            # Exit with error to indicate segfault occurred
+            exit 1
+          else
+            echo "No segfault detected in GDB session"
           fi
       - name: Create staging directory
         run: mkdir -p staging
@@ -239,27 +241,29 @@ jobs:
           if timeout 10s "$ACTUAL_JDATE" --version >/dev/null 2>&1; then
             echo "jdate execution successful"
           else
-            echo "jdate execution failed or crashed, running LLDB for debugging..."
-            
-            # Run LLDB with proper crash handling and library path
-            echo "=== LLDB Debug Session ==="
-            lldb -o "settings set target.env-vars DYLD_LIBRARY_PATH=$LIBJALALI_PATH:$DYLD_LIBRARY_PATH" \
-                 -o "process handle -s false SIGSEGV" \
-                 -o "run" \
-                 -o "bt all" \
-                 -o "register read" \
-                 -o "image list" \
-                 -o "quit" \
-                 -- "$ACTUAL_JDATE" 2>&1 | tee lldb_output.log
-            
-            echo "LLDB output saved to lldb_output.log"
-            
-            # Check if LLDB caught a crash
-            if grep -q "EXC_BAD_ACCESS\|SIGSEGV\|crash" lldb_output.log; then
-              echo "CRASH DETECTED - Check lldb_output.log for details"
-              # Exit with error to indicate crash occurred
-              exit 1
-            fi
+            echo "jdate execution failed or crashed"
+          fi
+          
+          # Always run LLDB for debugging (even if execution was successful)
+          echo "=== Running LLDB for debugging ==="
+          lldb -o "settings set target.env-vars DYLD_LIBRARY_PATH=$LIBJALALI_PATH:$DYLD_LIBRARY_PATH" \
+               -o "process handle -s false SIGSEGV" \
+               -o "run" \
+               -o "bt all" \
+               -o "register read" \
+               -o "image list" \
+               -o "quit" \
+               -- "$ACTUAL_JDATE" 2>&1 | tee lldb_output.log
+          
+          echo "LLDB output saved to lldb_output.log"
+          
+          # Check if LLDB caught a crash
+          if grep -q "EXC_BAD_ACCESS\|SIGSEGV\|crash" lldb_output.log; then
+            echo "CRASH DETECTED - Check lldb_output.log for details"
+            # Exit with error to indicate crash occurred
+            exit 1
+          else
+            echo "No crash detected in LLDB session"
           fi
       - name: Create staging directory
         run: mkdir -p staging
@@ -368,29 +372,31 @@ jobs:
           if timeout 10s "$ACTUAL_JDATE" --version >/dev/null 2>&1; then
             echo "jdate execution successful"
           else
-            echo "jdate execution failed or crashed, running GDB for debugging..."
-            
-            # Run GDB with proper SIGSEGV handling and library path
-            echo "=== GDB Debug Session ==="
-            gdb -batch \
-                -ex "set confirm off" \
-                -ex "set environment PATH=$LIBJALALI_PATH:$PATH" \
-                -ex "handle SIGSEGV stop print" \
-                -ex "run" \
-                -ex "bt full" \
-                -ex "info registers" \
-                -ex "thread apply all bt full" \
-                -ex "quit" \
-                --args "$ACTUAL_JDATE" 2>&1 | tee gdb_output.log
-            
-            echo "GDB output saved to gdb_output.log"
-            
-            # Check if GDB caught a segfault
-            if grep -q "SIGSEGV\|Segmentation fault" gdb_output.log; then
-              echo "SEGFAULT DETECTED - Check gdb_output.log for details"
-              # Exit with error to indicate segfault occurred
-              exit 1
-            fi
+            echo "jdate execution failed or crashed"
+          fi
+          
+          # Always run GDB for debugging (even if execution was successful)
+          echo "=== Running GDB for debugging ==="
+          gdb -batch \
+              -ex "set confirm off" \
+              -ex "set environment PATH=$LIBJALALI_PATH:$PATH" \
+              -ex "handle SIGSEGV stop print" \
+              -ex "run" \
+              -ex "bt full" \
+              -ex "info registers" \
+              -ex "thread apply all bt full" \
+              -ex "quit" \
+              --args "$ACTUAL_JDATE" 2>&1 | tee gdb_output.log
+          
+          echo "GDB output saved to gdb_output.log"
+          
+          # Check if GDB caught a segfault
+          if grep -q "SIGSEGV\|Segmentation fault" gdb_output.log; then
+            echo "SEGFAULT DETECTED - Check gdb_output.log for details"
+            # Exit with error to indicate segfault occurred
+            exit 1
+          else
+            echo "No segfault detected in GDB session"
           fi
       - name: Create staging directory
         shell: msys2 {0}
