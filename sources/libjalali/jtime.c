@@ -102,7 +102,7 @@ void in_jlocaltime(const time_t* timep, struct jtm* result)
         return;
 
     struct tm t;
-    struct jtm c_jtm;
+    struct jtm c_jtm = {0};
     struct ab_jtm ab;
     long int gmtoff;
     time_t c;
@@ -129,6 +129,7 @@ void in_jlocaltime(const time_t* timep, struct jtm* result)
 #endif
 
     jalali_from_gregorian(t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, &c_jtm.tm_year, &c_jtm.tm_mon, &c_jtm.tm_mday);
+    c_jtm.tm_wday = (t.tm_wday + 1) % 7;
     c_jtm.tm_sec = t.tm_sec;
     c_jtm.tm_min = t.tm_min;
     c_jtm.tm_hour = t.tm_hour;
@@ -155,7 +156,7 @@ void in_jgmtime(const time_t* timep, struct jtm* result)
         return;
 
     struct tm t;
-    struct jtm c_jtm;
+    struct jtm c_jtm = {0};
     struct ab_jtm ab;
     time_t c;
     tzset();
@@ -166,6 +167,7 @@ void in_jgmtime(const time_t* timep, struct jtm* result)
     gmtime_r(timep, &t);
 #endif
     jalali_from_gregorian(t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, &c_jtm.tm_year, &c_jtm.tm_mon, &c_jtm.tm_mday);
+    c_jtm.tm_wday = (t.tm_wday + 1) % 7;
     c_jtm.tm_sec = t.tm_sec;
     c_jtm.tm_min = t.tm_min;
     c_jtm.tm_hour = t.tm_hour;
