@@ -22,7 +22,7 @@ jobs:
         working-directory: ./sources
         run: |
           ./autogen.sh
-          ./configure CFLAGS="-g" --enable-pyjalali
+          ./configure CFLAGS="-g" --enable-pyjalali --prefix=/usr
           make
 
       - name: Verify build and debug if needed
@@ -34,11 +34,19 @@ jobs:
             file src/jdate
             ls -la src/jdate
             echo "Testing jdate execution..."
-            if ./src/jdate --version 2>/dev/null || ./src/jdate --help 2>/dev/null || ./src/jdate 2>/dev/null; then
-              echo "jdate runs successfully"
+            # Always run GDB to catch segfaults and other runtime issues
+            echo "Running GDB diagnostics..."
+            gdb -batch -ex 'set confirm off' -ex 'run' -ex 'bt full' -ex 'info registers' -ex 'quit' --args src/jdate 2>&1 | tee gdb_output.log
+            
+            # Also test basic execution
+            if timeout 10s ./src/jdate --version 2>/dev/null || timeout 10s ./src/jdate --help 2>/dev/null; then
+              echo "jdate basic execution successful"
             else
-              echo "jdate execution failed, running GDB for debugging..."
-              gdb -batch -ex 'run' -ex 'bt' --args src/jdate
+              echo "jdate execution failed or timed out"
+              echo "=== GDB Output ==="
+              cat gdb_output.log
+              echo "=== Library Dependencies ==="
+              ldd src/jdate || echo "ldd failed"
             fi
           else
             echo "ERROR: jdate binary not found!"
@@ -53,7 +61,7 @@ jobs:
 
       - name: Install to staging directory
         working-directory: ./sources
-        run: make install DESTDIR=$(pwd)/../staging
+        run: make install DESTDIR=$(pwd)/../staging prefix=/usr/local prefix=/usr/local
 
       - name: Get project version
         id: get_version
@@ -61,11 +69,33 @@ jobs:
 
       - name: Package with FPM (.deb)
         run: |
-          fpm -s dir -t deb -n jcal -v ${{ env.VERSION }} --prefix /usr/local -C staging .
+          fpm -s dir -t deb -n jcal -v ${{ env.VERSION }} \
+              --prefix / \
+              --deb-suggests "libreadline8" \
+              --description "Jalali calendar utilities" \
+              --url "https://github.com/yourusername/jcal" \
+              --license "GPL" \
+              --after-install post-install.sh \
+              -C staging .
+
+      - name: Create post-install script
+        run: |
+          cat > post-install.sh << 'EOF'
+          #!/bin/bash
+          # Update library cache after installation
+          ldconfig
+          EOF
+          chmod +x post-install.sh
 
       - name: Package with FPM (.rpm)
         run: |
-          fpm -s dir -t rpm -n jcal -v ${{ env.VERSION }} --prefix /usr/local -C staging .
+          fpm -s dir -t rpm -n jcal -v ${{ env.VERSION }} \
+              --prefix / \
+              --rpm-summary "Jalali calendar utilities" \
+              --description "Jalali calendar utilities" \
+              --url "https://github.com/yourusername/jcal" \
+              --license "GPL" \
+              -C staging .
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -177,11 +207,19 @@ jobs:
             file src/jdate.exe
             ls -la src/jdate.exe
             echo "Testing jdate execution..."
-            if ./src/jdate.exe --version 2>/dev/null || ./src/jdate.exe --help 2>/dev/null || ./src/jdate.exe 2>/dev/null; then
-              echo "jdate runs successfully"
+            # Always run GDB to catch segfaults and other runtime issues
+            echo "Running GDB diagnostics..."
+            gdb -batch -ex 'set confirm off' -ex 'run' -ex 'bt full' -ex 'info registers' -ex 'quit' --args src/jdate.exe 2>&1 | tee gdb_output.log
+            
+            # Also test basic execution
+            if timeout 10s ./src/jdate.exe --version 2>/dev/null || timeout 10s ./src/jdate.exe --help 2>/dev/null; then
+              echo "jdate basic execution successful"
             else
-              echo "jdate execution failed, running GDB for debugging..."
-              gdb -batch -ex 'run' -ex 'bt' --args src/jdate.exe
+              echo "jdate execution failed or timed out"
+              echo "=== GDB Output ==="
+              cat gdb_output.log
+              echo "=== Library Dependencies ==="
+              ldd src/jdate.exe || echo "ldd failed"
             fi
           else
             echo "ERROR: jdate.exe binary not found!"
@@ -198,7 +236,7 @@ jobs:
       - name: Install to staging directory
         shell: msys2 {0}
         working-directory: ./sources
-        run: make install DESTDIR=$(pwd)/../staging
+        run: make install DESTDIR=$(pwd)/../staging prefix=/mingw64
 
       - name: Get project version
         shell: bash
