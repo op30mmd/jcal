@@ -1,30 +1,25 @@
 name: Build and Release
-
 on:
   push:
     branches:
       - master
-
 jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential automake autoconf libtool python-dev-is-python3 ruby ruby-dev rubygems libreadline-dev gdb
           sudo gem install fpm
-
       - name: Build project
         working-directory: ./sources
         run: |
           ./autogen.sh
           ./configure CFLAGS="-g" --enable-pyjalali --prefix=/usr
           make
-
       - name: Verify build and debug if needed
         working-directory: ./sources
         run: |
@@ -35,55 +30,60 @@ jobs:
           echo "=== Checking for compiled binaries ==="
           find src/ -type f -executable -exec file {} \; | grep -E "(ELF|executable)"
           
-          if [ -f "src/jdate" ]; then
-            echo "jdate found - checking file type:"
-            file src/jdate
-            ls -la src/jdate
-            
-            # If it's a shell script, just test execution
-            if file src/jdate | grep -q "shell script"; then
-              echo "jdate is a shell script wrapper - testing execution..."
-              if timeout 10s ./src/jdate --version; then
-                echo "jdate script execution successful"
-              else
-                echo "jdate script execution failed"
-              fi
-            else
-              echo "jdate appears to be a binary - running GDB diagnostics..."
-              gdb -batch -ex 'set confirm off' -ex 'run' -ex 'bt full' -ex 'info registers' -ex 'quit' --args src/jdate 2>&1 | tee gdb_output.log
-            fi
-            
-            # Look for the actual compiled binary that the script might be wrapping
-            echo "=== Looking for actual compiled binaries ==="
-            find . -name "*.o" -o -name "jdate.bin" -o -name ".libs" -type d | head -10
-            if [ -d ".libs" ]; then
-              echo "Found .libs directory:"
-              ls -la .libs/
-              if [ -f ".libs/jdate" ]; then
-                echo "Found actual binary in .libs/jdate"
-                file .libs/jdate
-                echo "Running GDB on actual binary..."
-                gdb -batch -ex 'set confirm off' -ex 'run' -ex 'bt full' -ex 'info registers' -ex 'quit' --args .libs/jdate 2>&1
-              fi
-            fi
+          # Determine the actual binary to debug
+          ACTUAL_JDATE=""
+          if [ -f "src/.libs/jdate" ] && file "src/.libs/jdate" | grep -q "ELF"; then
+            ACTUAL_JDATE="src/.libs/jdate"
+            echo "Found actual binary: $ACTUAL_JDATE"
+          elif [ -f "src/jdate" ] && file "src/jdate" | grep -q "ELF"; then
+            ACTUAL_JDATE="src/jdate"
+            echo "Found binary: $ACTUAL_JDATE"
           else
-            echo "ERROR: jdate not found!"
-            echo "Build may have failed. Listing contents of src directory:"
-            ls -la src/
+            echo "ERROR: No jdate binary found!"
             exit 1
           fi
-
+          
+          # File information
+          echo "=== File information ==="
+          file "$ACTUAL_JDATE"
+          ls -la "$ACTUAL_JDATE"
+          
+          # Test execution first
+          echo "=== Testing execution ==="
+          if timeout 10s "$ACTUAL_JDATE" --version >/dev/null 2>&1; then
+            echo "jdate execution successful"
+          else
+            echo "jdate execution failed or crashed, running GDB for debugging..."
+            
+            # Run GDB with proper SIGSEGV handling
+            echo "=== GDB Debug Session ==="
+            gdb -batch \
+                -ex "set confirm off" \
+                -ex "handle SIGSEGV stop print" \
+                -ex "run" \
+                -ex "bt full" \
+                -ex "info registers" \
+                -ex "thread apply all bt full" \
+                -ex "quit" \
+                --args "$ACTUAL_JDATE" 2>&1 | tee gdb_output.log
+            
+            echo "GDB output saved to gdb_output.log"
+            
+            # Check if GDB caught a segfault
+            if grep -q "SIGSEGV\|Segmentation fault" gdb_output.log; then
+              echo "SEGFAULT DETECTED - Check gdb_output.log for details"
+              # Exit with error to indicate segfault occurred
+              exit 1
+            fi
+          fi
       - name: Create staging directory
         run: mkdir -p staging
-
       - name: Install to staging directory
         working-directory: ./sources
         run: make install DESTDIR=$(pwd)/../staging prefix=/usr/local prefix=/usr/local
-
       - name: Get project version
         id: get_version
         run: echo "VERSION=$(grep AC_INIT sources/configure.ac | cut -d '[' -f 3 | cut -d ']' -f 1)" >> $GITHUB_ENV
-
       - name: Package with FPM (.deb)
         run: |
           fpm -s dir -t deb -n jcal -v ${{ env.VERSION }} \
@@ -94,7 +94,6 @@ jobs:
               --license "GPL" \
               --after-install post-install.sh \
               -C staging .
-
       - name: Create post-install script
         run: |
           cat > post-install.sh << 'EOF'
@@ -103,7 +102,6 @@ jobs:
           ldconfig
           EOF
           chmod +x post-install.sh
-
       - name: Package with FPM (.rpm)
         run: |
           fpm -s dir -t rpm -n jcal -v ${{ env.VERSION }} \
@@ -113,7 +111,6 @@ jobs:
               --url "https://github.com/yourusername/jcal" \
               --license "GPL" \
               -C staging .
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -121,80 +118,98 @@ jobs:
           path: |
             *.deb
             *.rpm
+            gdb_output.log
 
   build-macos:
     runs-on: macos-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Install dependencies
         run: |
           brew install automake autoconf libtool gdb
           python -m pip install --upgrade pip
           pip install setuptools
-
       - name: Build project
         working-directory: ./sources
         run: |
           ./autogen.sh
           ./configure CFLAGS="-g" --enable-pyjalali
           make
-
       - name: Verify build and debug if needed
         working-directory: ./sources
         run: |
-          echo "Checking if jdate binary exists and is executable..."
-          if [ -f "src/jdate" ]; then
-            echo "jdate binary found"
-            file src/jdate
-            ls -la src/jdate
-            echo "Testing jdate execution..."
-            if ./src/jdate --version 2>/dev/null || ./src/jdate --help 2>/dev/null || ./src/jdate 2>/dev/null; then
-              echo "jdate runs successfully"
-            else
-              echo "jdate execution failed, running GDB for debugging..."
-              # Note: GDB on macOS might have limitations, use lldb as alternative
-              if command -v lldb >/dev/null 2>&1; then
-                lldb -o 'run' -o 'bt' -o 'quit' -- src/jdate
-              else
-                gdb -batch -ex 'run' -ex 'bt' --args src/jdate
-              fi
-            fi
+          echo "Checking build outputs..."
+          echo "=== Contents of src directory ==="
+          ls -la src/
+          
+          # Determine the actual binary to debug
+          ACTUAL_JDATE=""
+          if [ -f "src/.libs/jdate" ] && file "src/.libs/jdate" | grep -q "Mach-O"; then
+            ACTUAL_JDATE="src/.libs/jdate"
+            echo "Found actual binary: $ACTUAL_JDATE"
+          elif [ -f "src/jdate" ] && file "src/jdate" | grep -q "Mach-O"; then
+            ACTUAL_JDATE="src/jdate"
+            echo "Found binary: $ACTUAL_JDATE"
           else
-            echo "ERROR: jdate binary not found!"
-            echo "Build may have failed. Listing contents of src directory:"
-            ls -la src/
-            echo "Checking make output and build logs..."
+            echo "ERROR: No jdate binary found!"
             exit 1
           fi
-
+          
+          # File information
+          echo "=== File information ==="
+          file "$ACTUAL_JDATE"
+          ls -la "$ACTUAL_JDATE"
+          
+          # Test execution first
+          echo "=== Testing execution ==="
+          if timeout 10s "$ACTUAL_JDATE" --version >/dev/null 2>&1; then
+            echo "jdate execution successful"
+          else
+            echo "jdate execution failed or crashed, running LLDB for debugging..."
+            
+            # Run LLDB with proper crash handling
+            echo "=== LLDB Debug Session ==="
+            lldb -o "process handle -s false SIGSEGV" \
+                 -o "run" \
+                 -o "bt all" \
+                 -o "register read" \
+                 -o "image list" \
+                 -o "quit" \
+                 -- "$ACTUAL_JDATE" 2>&1 | tee lldb_output.log
+            
+            echo "LLDB output saved to lldb_output.log"
+            
+            # Check if LLDB caught a crash
+            if grep -q "EXC_BAD_ACCESS\|SIGSEGV\|crash" lldb_output.log; then
+              echo "CRASH DETECTED - Check lldb_output.log for details"
+              # Exit with error to indicate crash occurred
+              exit 1
+            fi
+          fi
       - name: Create staging directory
         run: mkdir -p staging
-
       - name: Install to staging directory
         working-directory: ./sources
         run: make install DESTDIR=$(pwd)/../staging
-
       - name: Get project version
         run: echo "VERSION=$(grep AC_INIT sources/configure.ac | cut -d '[' -f 3 | cut -d ']' -f 1)" >> $GITHUB_ENV
-
       - name: Create tarball
         run: |
           tar -czvf jcal-${{ env.VERSION }}-macos.tar.gz -C staging .
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: macos-package
-          path: jcal-${{ env.VERSION }}-macos.tar.gz
+          path: |
+            jcal-${{ env.VERSION }}-macos.tar.gz
+            lldb_output.log
 
   build-windows:
     runs-on: windows-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Set up MSYS2
         uses: msys2/setup-msys2@v2
         with:
@@ -205,7 +220,6 @@ jobs:
             mingw-w64-x86_64-toolchain
             autotools
             mingw-w64-x86_64-gdb
-
       - name: Build project
         shell: msys2 {0}
         working-directory: ./sources
@@ -213,7 +227,6 @@ jobs:
           ./autogen.sh
           ./configure CFLAGS="-g" --prefix=/mingw64
           make
-
       - name: Verify build and debug if needed
         shell: msys2 {0}
         working-directory: ./sources
@@ -222,63 +235,64 @@ jobs:
           echo "=== Contents of src directory ==="
           ls -la src/
           
-          echo "=== Checking for compiled binaries ==="
-          find src/ -type f -executable -exec file {} \; | grep -E "(PE32|executable)"
-          
-          if [ -f "src/jdate.exe" ]; then
-            echo "jdate.exe found - checking file type:"
-            file src/jdate.exe
-            ls -la src/jdate.exe
-            
-            # If it's a shell script, just test execution
-            if file src/jdate.exe | grep -q "shell script"; then
-              echo "jdate.exe is a shell script wrapper - testing execution..."
-              if timeout 10s ./src/jdate.exe --version; then
-                echo "jdate script execution successful"
-              else
-                echo "jdate script execution failed"
-              fi
-            else
-              echo "jdate.exe appears to be a binary - running GDB diagnostics..."
-              gdb -batch -ex 'set confirm off' -ex 'run' -ex 'bt full' -ex 'info registers' -ex 'quit' --args src/jdate.exe 2>&1 | tee gdb_output.log
-            fi
-            
-            # Look for the actual compiled binary
-            echo "=== Looking for actual compiled binaries ==="
-            find . -name "*.o" -o -name "jdate.bin" -o -name ".libs" -type d | head -10
-            if [ -d ".libs" ]; then
-              echo "Found .libs directory:"
-              ls -la .libs/
-              if [ -f ".libs/jdate.exe" ]; then
-                echo "Found actual binary in .libs/jdate.exe"
-                file .libs/jdate.exe
-                echo "Running GDB on actual binary..."
-                gdb -batch -ex 'set confirm off' -ex 'run' -ex 'bt full' -ex 'info registers' -ex 'quit' --args .libs/jdate.exe 2>&1
-              fi
-            fi
+          # Determine the actual binary to debug
+          ACTUAL_JDATE=""
+          if [ -f "src/.libs/jdate.exe" ] && file "src/.libs/jdate.exe" | grep -q "PE32"; then
+            ACTUAL_JDATE="src/.libs/jdate.exe"
+            echo "Found actual binary: $ACTUAL_JDATE"
+          elif [ -f "src/jdate.exe" ] && file "src/jdate.exe" | grep -q "PE32"; then
+            ACTUAL_JDATE="src/jdate.exe"
+            echo "Found binary: $ACTUAL_JDATE"
           else
-            echo "ERROR: jdate.exe not found!"
-            echo "Build may have failed. Listing contents of src directory:"
-            ls -la src/
+            echo "ERROR: No jdate.exe binary found!"
             exit 1
           fi
-
+          
+          # File information
+          echo "=== File information ==="
+          file "$ACTUAL_JDATE"
+          ls -la "$ACTUAL_JDATE"
+          
+          # Test execution first
+          echo "=== Testing execution ==="
+          if timeout 10s "$ACTUAL_JDATE" --version >/dev/null 2>&1; then
+            echo "jdate execution successful"
+          else
+            echo "jdate execution failed or crashed, running GDB for debugging..."
+            
+            # Run GDB with proper SIGSEGV handling
+            echo "=== GDB Debug Session ==="
+            gdb -batch \
+                -ex "set confirm off" \
+                -ex "handle SIGSEGV stop print" \
+                -ex "run" \
+                -ex "bt full" \
+                -ex "info registers" \
+                -ex "thread apply all bt full" \
+                -ex "quit" \
+                --args "$ACTUAL_JDATE" 2>&1 | tee gdb_output.log
+            
+            echo "GDB output saved to gdb_output.log"
+            
+            # Check if GDB caught a segfault
+            if grep -q "SIGSEGV\|Segmentation fault" gdb_output.log; then
+              echo "SEGFAULT DETECTED - Check gdb_output.log for details"
+              # Exit with error to indicate segfault occurred
+              exit 1
+            fi
+          fi
       - name: Create staging directory
         shell: msys2 {0}
         run: mkdir -p staging
-
       - name: Install to staging directory
         shell: msys2 {0}
         working-directory: ./sources
         run: make install DESTDIR=$(pwd)/../staging prefix=/mingw64
-
       - name: Get project version
         shell: bash
         run: echo "VERSION=$(grep AC_INIT sources/configure.ac | cut -d '[' -f 3 | cut -d ']' -f 1)" >> $GITHUB_ENV
-
       - name: Install WiX Toolset
         run: dotnet tool install --global wix
-
       - name: Create main WiX source file
         shell: pwsh
         run: |
@@ -304,27 +318,24 @@ jobs:
             </Fragment>
           </Wix>
           "@ | Out-File -FilePath "main.wxs" -Encoding "utf8"
-
       - name: Add .dotnet/tools to path
         run: echo "$HOME/.dotnet/tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
       - name: Harvest files with heat
         working-directory: staging/mingw64
         run: heat.exe dir . -ag -o ../../files.wxs -cg ProductComponents -dr INSTALLFOLDER
-
       - name: Fix WiX namespace
         shell: pwsh
         run: (Get-Content files.wxs) -replace 'http://schemas.microsoft.com/wix/2006/wi', 'http://wixtoolset.org/schemas/v4/wxs' | Set-Content files.wxs
-
       - name: Build MSI installer
         working-directory: staging/mingw64
         run: wix build -o ../../jcal-${{ env.VERSION }}.msi -b . ../../main.wxs ../../files.wxs
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-package
-          path: jcal-${{ env.VERSION }}.msi
+          path: |
+            jcal-${{ env.VERSION }}.msi
+            gdb_output.log
 
   release:
     runs-on: ubuntu-latest
@@ -332,19 +343,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Generate tag name
         id: tag
         run: echo "TAG_NAME=build-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-
       - name: List downloaded files
         run: ls -R artifacts
-
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v1
         with:
