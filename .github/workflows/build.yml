@@ -54,17 +54,35 @@ jobs:
           
           # Look for the shared library
           echo "=== Looking for shared library ==="
+          LIBJALALI_PATH=""
           if [ -f "src/.libs/libjalali.so.0" ]; then
             echo "Found libjalali.so.0 in src/.libs/"
             ls -la src/.libs/libjalali.so*
-            
-            # Set library path for execution
-            export LD_LIBRARY_PATH="src/.libs:$LD_LIBRARY_PATH"
-            echo "Set LD_LIBRARY_PATH to: $LD_LIBRARY_PATH"
+            LIBJALALI_PATH="src/.libs"
+          elif [ -f "libjalali/.libs/libjalali.so.0" ]; then
+            echo "Found libjalali.so.0 in libjalali/.libs/"
+            ls -la libjalali/.libs/libjalali.so*
+            LIBJALALI_PATH="libjalali/.libs"
+          elif [ -f "libjalali/.libs/libjalali.so.0.0.5" ]; then
+            echo "Found libjalali.so.0.0.5 in libjalali/.libs/"
+            ls -la libjalali/.libs/libjalali.so*
+            # Create a symlink if needed
+            cd libjalali/.libs
+            if [ ! -f "libjalali.so.0" ] && [ -f "libjalali.so.0.0.5" ]; then
+              echo "Creating symlink libjalali.so.0 -> libjalali.so.0.0.5"
+              ln -sf libjalali.so.0.0.5 libjalali.so.0
+            fi
+            cd ../../
+            LIBJALALI_PATH="libjalali/.libs"
           else
-            echo "Warning: libjalali.so.0 not found in src/.libs/"
+            echo "ERROR: libjalali.so.0 not found!"
             find . -name "libjalali.so*" -type f
+            exit 1
           fi
+          
+          # Set library path for execution
+          export LD_LIBRARY_PATH="$LIBJALALI_PATH:$LD_LIBRARY_PATH"
+          echo "Set LD_LIBRARY_PATH to: $LD_LIBRARY_PATH"
           
           # Test execution first
           echo "=== Testing execution ==="
@@ -77,7 +95,7 @@ jobs:
             echo "=== GDB Debug Session ==="
             gdb -batch \
                 -ex "set confirm off" \
-                -ex "set environment LD_LIBRARY_PATH=src/.libs:$LD_LIBRARY_PATH" \
+                -ex "set environment LD_LIBRARY_PATH=$LIBJALALI_PATH:$LD_LIBRARY_PATH" \
                 -ex "handle SIGSEGV stop print" \
                 -ex "run" \
                 -ex "bt full" \
@@ -186,17 +204,35 @@ jobs:
           
           # Look for the shared library
           echo "=== Looking for shared library ==="
+          LIBJALALI_PATH=""
           if [ -f "src/.libs/libjalali.0.dylib" ]; then
             echo "Found libjalali.0.dylib in src/.libs/"
             ls -la src/.libs/libjalali*.dylib
-            
-            # Set library path for execution
-            export DYLD_LIBRARY_PATH="src/.libs:$DYLD_LIBRARY_PATH"
-            echo "Set DYLD_LIBRARY_PATH to: $DYLD_LIBRARY_PATH"
+            LIBJALALI_PATH="src/.libs"
+          elif [ -f "libjalali/.libs/libjalali.0.dylib" ]; then
+            echo "Found libjalali.0.dylib in libjalali/.libs/"
+            ls -la libjalali/.libs/libjalali*.dylib
+            LIBJALALI_PATH="libjalali/.libs"
+          elif [ -f "libjalali/.libs/libjalali.0.0.5.dylib" ]; then
+            echo "Found libjalali.0.0.5.dylib in libjalali/.libs/"
+            ls -la libjalali/.libs/libjalali*.dylib
+            # Create a symlink if needed
+            cd libjalali/.libs
+            if [ ! -f "libjalali.0.dylib" ] && [ -f "libjalali.0.0.5.dylib" ]; then
+              echo "Creating symlink libjalali.0.dylib -> libjalali.0.0.5.dylib"
+              ln -sf libjalali.0.0.5.dylib libjalali.0.dylib
+            fi
+            cd ../../
+            LIBJALALI_PATH="libjalali/.libs"
           else
-            echo "Warning: libjalali.0.dylib not found in src/.libs/"
+            echo "ERROR: libjalali.0.dylib not found!"
             find . -name "libjalali*.dylib" -type f
+            exit 1
           fi
+          
+          # Set library path for execution
+          export DYLD_LIBRARY_PATH="$LIBJALALI_PATH:$DYLD_LIBRARY_PATH"
+          echo "Set DYLD_LIBRARY_PATH to: $DYLD_LIBRARY_PATH"
           
           # Test execution first
           echo "=== Testing execution ==="
@@ -207,7 +243,7 @@ jobs:
             
             # Run LLDB with proper crash handling and library path
             echo "=== LLDB Debug Session ==="
-            lldb -o "settings set target.env-vars DYLD_LIBRARY_PATH=src/.libs:$DYLD_LIBRARY_PATH" \
+            lldb -o "settings set target.env-vars DYLD_LIBRARY_PATH=$LIBJALALI_PATH:$DYLD_LIBRARY_PATH" \
                  -o "process handle -s false SIGSEGV" \
                  -o "run" \
                  -o "bt all" \
@@ -297,17 +333,35 @@ jobs:
           
           # Look for the shared library
           echo "=== Looking for shared library ==="
+          LIBJALALI_PATH=""
           if [ -f "src/.libs/libjalali-0.dll" ]; then
             echo "Found libjalali-0.dll in src/.libs/"
             ls -la src/.libs/libjalali*.dll
-            
-            # Add library path to PATH for execution
-            export PATH="src/.libs:$PATH"
-            echo "Added src/.libs to PATH"
+            LIBJALALI_PATH="src/.libs"
+          elif [ -f "libjalali/.libs/libjalali-0.dll" ]; then
+            echo "Found libjalali-0.dll in libjalali/.libs/"
+            ls -la libjalali/.libs/libjalali*.dll
+            LIBJALALI_PATH="libjalali/.libs"
+          elif [ -f "libjalali/.libs/libjalali-0-5.dll" ]; then
+            echo "Found libjalali-0-5.dll in libjalali/.libs/"
+            ls -la libjalali/.libs/libjalali*.dll
+            # Create a symlink if needed
+            cd libjalali/.libs
+            if [ ! -f "libjalali-0.dll" ] && [ -f "libjalali-0-5.dll" ]; then
+              echo "Creating symlink libjalali-0.dll -> libjalali-0-5.dll"
+              ln -sf libjalali-0-5.dll libjalali-0.dll
+            fi
+            cd ../../
+            LIBJALALI_PATH="libjalali/.libs"
           else
-            echo "Warning: libjalali-0.dll not found in src/.libs/"
+            echo "ERROR: libjalali-0.dll not found!"
             find . -name "libjalali*.dll" -type f
+            exit 1
           fi
+          
+          # Add library path to PATH for execution
+          export PATH="$LIBJALALI_PATH:$PATH"
+          echo "Added $LIBJALALI_PATH to PATH"
           
           # Test execution first
           echo "=== Testing execution ==="
@@ -320,7 +374,7 @@ jobs:
             echo "=== GDB Debug Session ==="
             gdb -batch \
                 -ex "set confirm off" \
-                -ex "set environment PATH=src/.libs:$PATH" \
+                -ex "set environment PATH=$LIBJALALI_PATH:$PATH" \
                 -ex "handle SIGSEGV stop print" \
                 -ex "run" \
                 -ex "bt full" \
