@@ -24,6 +24,18 @@
 
 #include <time.h>
 
+#ifndef JALALI_API
+#  if defined(_WIN32) || defined(__CYGWIN__)
+#    ifdef BUILDING_LIBJALALI
+#      define JALALI_API __declspec(dllexport)
+#    else
+#      define JALALI_API __declspec(dllimport)
+#    endif
+#  else
+#    define JALALI_API
+#  endif
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #if 0 /* /me mutters something about emacs. */
@@ -66,27 +78,27 @@ struct jyinfo {
 
 
 /* Jalali leap year indication function. */
-extern int jalali_is_jleap(int year);
+JALALI_API extern int jalali_is_jleap(int year);
 
-extern void jalali_create_time_from_secs(time_t time, struct ab_jtm* ab_jtm);
+JALALI_API extern void jalali_create_time_from_secs(time_t time, struct ab_jtm* ab_jtm);
 
-extern time_t jalali_create_secs_from_time(const struct ab_jtm* ab_jtm);
+JALALI_API extern time_t jalali_create_secs_from_time(const struct ab_jtm* ab_jtm);
 
-extern int jalali_create_days_from_date(struct jtm* j);
+JALALI_API extern int jalali_create_days_from_date(struct jtm* j);
 
-extern void jalali_get_jyear_info(struct jyinfo* jyinfo);
+JALALI_API extern void jalali_get_jyear_info(struct jyinfo* jyinfo);
 
-extern void jalali_from_gregorian(int gy, int gm, int gd, int* jy, int* jm, int* jd);
+JALALI_API extern void jalali_from_gregorian(int gy, int gm, int gd, int* jy, int* jm, int* jd);
 
-extern void jalali_get_date(int p, struct jtm* jtm);
+JALALI_API extern void jalali_get_date(int p, struct jtm* jtm);
 
-extern int jalali_get_diff(const struct jtm* jtm);
+JALALI_API extern int jalali_get_diff(const struct jtm* jtm);
 
-extern void jalali_update(struct jtm* jtm);
+JALALI_API extern void jalali_update(struct jtm* jtm);
 
-extern void jalali_show_time(const struct jtm* j);
+JALALI_API extern void jalali_show_time(const struct jtm* j);
 
-extern int jalali_year_month_days(int year, int month);
+JALALI_API extern int jalali_year_month_days(int year, int month);
 
 #ifdef __cplusplus
 }
