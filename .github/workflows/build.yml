@@ -331,13 +331,16 @@ jobs:
           
           # Look for the shared library
           echo "=== Looking for shared library ==="
-          LIBJALALI_PATH=$(find . -name "libjalali*.dll" -printf "%h" -quit)
-          if [ -n "$LIBJALALI_PATH" ]; then
-            echo "Found libjalali DLL in $LIBJALALI_PATH"
+          DLL_FILE=$(find . -name "libjalali*.dll" -print -quit)
+          if [ -n "$DLL_FILE" ]; then
+            LIBJALALI_PATH=$(dirname "$DLL_FILE")
+            echo "Found libjalali DLL: $DLL_FILE"
             ls -la "$LIBJALALI_PATH"/libjalali*.dll
           else
             echo "ERROR: libjalali DLL not found!"
-            find . -name "libjalali*.dll" -type f
+            # For debugging, list all files to see what was actually built
+            echo "--- Listing all files for debugging ---"
+            find . -type f
             exit 1
           fi
           
