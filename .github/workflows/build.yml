@@ -404,7 +404,7 @@ jobs:
             <Fragment>
               <DirectoryRef Id="INSTALLFOLDER">
                 <Component Id="Path" Guid="12345678-1234-1234-1234-123456789013">
-                  <Environment Id="PATH" Name="PATH" Value="[INSTALLFOLDER]bin" Permanent="no" Part="last" Action="set" System="yes" />
+                  <Environment Id="PATH" Name="PATH" Value="[INSTALLFOLDER]\bin" Permanent="no" Part="last" Action="set" System="yes" />
                 </Component>
               </DirectoryRef>
             </Fragment>
