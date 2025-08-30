@@ -128,6 +128,7 @@ void in_jlocaltime(const time_t* timep, struct jtm* result)
 #endif
 
     jalali_from_gregorian(t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, &c_jtm.tm_year, &c_jtm.tm_mon, &c_jtm.tm_mday);
+    c_jtm.tm_mon -= 1;
     c_jtm.tm_wday = (t.tm_wday + 1) % 7;
     c_jtm.tm_sec = t.tm_sec;
     c_jtm.tm_min = t.tm_min;

@@ -397,37 +397,36 @@ void show_3(struct cal_layout* l, struct jtm* j)
 {
     struct jtm** _j;
     struct cal_matrix m;
-
     int diff_p;
     int diff_c;
     int diff_n;
-
     int i;
-
     m.n = 3;
-
     _j = malloc(m.n * sizeof(struct jtm*));
-
     for (i=0; i<m.n; i++) {
         _j[i] = malloc(sizeof(struct jtm));
     }
-
     memcpy(_j[1], j, sizeof(struct jtm));
-
     diff_c = jalali_get_diff(_j[1]);
-    diff_p = diff_c - (_j[1]->tm_mday + 1);
-    diff_n = (jalali_is_jleap(_j[1]->tm_year) && _j[1]->tm_mon == 11) ?
-        diff_c + (30 - _j[1]->tm_mday + 1) :
-        diff_c + (jalali_month_len[_j[1]->tm_mon] - _j[1]->tm_mday + 1);
+
+    // Fixed calculation for previous month:
+    // Go back to the first day of the current month, then go back one more day
+    // to the last day of the previous month
+    diff_p = diff_c - (_j[1]->tm_mday - 1);
+    diff_p -= 1;
+
+    // Fixed calculation for next month:
+    // Go forward to the last day of the current month, then go forward one more day
+    // to the first day of the next month
+    diff_n = diff_c + ((jalali_is_jleap(_j[1]->tm_year) && _j[1]->tm_mon == 11) ? 30 : jalali_month_len[_j[1]->tm_mon] - _j[1]->tm_mday);
+    diff_n += 1;
 
     jalali_get_date(diff_p, _j[0]);
     jalali_get_date(diff_n, _j[2]);
     show_cal(l, &m, _j);
-
     for (i=0; i<3; i++) {
         free(_j[i]);
     }
-
     free(_j);
 }
 

@@ -242,6 +242,7 @@ void jalali_get_date(int p, struct jtm* jtm)
     gmtime_r(&t, &gtm);
 #endif
     jalali_from_gregorian(gtm.tm_year + 1900, gtm.tm_mon + 1, gtm.tm_mday, &jtm->tm_year, &jtm->tm_mon, &jtm->tm_mday);
+    jtm->tm_mon -= 1;
 
     /* Adjust weekday. Gregorian Sunday is 0. Jalali Saturday is 0. */
     jtm->tm_wday = (gtm.tm_wday + 1) % 7;

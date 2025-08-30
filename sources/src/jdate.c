@@ -204,7 +204,10 @@ int main(int argc, char** argv)
         g.tm_hour = 0;
         g.tm_min = 0;
         g.tm_sec = 0;
+        g.tm_isdst = -1;
 
+        t = mktime(&g);
+        /* Call mktime again to normalize tm_wday and tm_yday. */
         t = mktime(&g);
     } else if (action.gregorian) {
         if (!jstrptime(action.gregorian_ptr, "%Y/%m/%d", &j)) {
